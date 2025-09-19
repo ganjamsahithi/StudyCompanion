@@ -28,8 +28,8 @@ Clone the repository to your local machine:
 
 Bash
 
-git clone https://github.com/your-username/your-repo-name.git
-cd intelligent-student-agent
+git clone https://github.com/ganjamsahithi/StudyCompanion.git
+cd StudyCompanion
 Create a virtual environment to manage dependencies:
 
 Bash
