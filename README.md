@@ -1,70 +1,56 @@
-# Getting Started with Create React App
+#Project Description
+Agent Compass is an AI-powered academic assistant designed to help college students manage their studies more effectively. This agent goes beyond a regular chatbot by acting as a proactive companion, helping you manage notes, track assignments, and receive personalized study recommendations.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Since it doesn't rely on a specific Learning Management System (LMS), it works directly with your personal files and notes. This makes it a versatile and private tool for anyone looking to organize their academic life.
 
-## Available Scripts
+Features (Initial MVP)
+Document Summarization: Upload lecture notes, articles, or other PDFs and get concise, easy-to-digest summaries. This helps you quickly review material and grasp key concepts.
 
-In the project directory, you can run:
+Basic Task Management: Manually add assignments, projects, and exam deadlines to a personalized to-do list. The agent helps you keep track of what's due and when.
 
-### `npm start`
+Targeted Resource Suggestions: Based on the content you provide, the agent can suggest relevant external resources like YouTube videos, practice problems, or research papers to help you deepen your understanding.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+How It Works
+You Provide the Data: Instead of pulling from a university system, you upload your personal documents and enter your assignment details.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The AI Processes: The agent uses Natural Language Processing (NLP) to analyze your files. It identifies key concepts, summarizes text, and extracts important information like due dates.
 
-### `npm test`
+It Offers Support: The agent then uses this processed information to provide you with summaries, timely reminders, and tailored suggestions to help you stay on top of your work and improve your learning.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Getting Started
+Prerequisites
+Python 3.8+
 
-### `npm run build`
+pip
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Installation
+Clone the repository to your local machine:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Bash
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+git clone https://github.com/your-username/your-repo-name.git
+cd intelligent-student-agent
+Create a virtual environment to manage dependencies:
 
-### `npm run eject`
+Bash
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+python -m venv venv
+source venv/bin/activate # On Windows, use `venv\Scripts\activate`
+Install the required libraries:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Bash
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+pip install -r requirements.txt
+Usage
+Run the main script from the terminal to start the agent's command-line interface (CLI):
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Bash
 
-## Learn More
+python src/main.py
+Follow the on-screen prompts to interact with the agent, upload files, and manage your tasks.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Contributing
+We welcome contributions! If you have ideas for new features, bug fixes, or improvements, please feel free to open an issue or submit a pull request.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+License
+This project is licensed under the MIT License - see the LICENSE file for details.
