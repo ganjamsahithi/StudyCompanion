@@ -1,4 +1,5 @@
 #Project Description
+
 Agent Compass is an AI-powered academic assistant designed to help college students manage their studies more effectively. This agent goes beyond a regular chatbot by acting as a proactive companion, helping you manage notes, track assignments, and receive personalized study recommendations.
 
 Since it doesn't rely on a specific Learning Management System (LMS), it works directly with your personal files and notes. This makes it a versatile and private tool for anyone looking to organize their academic life.
@@ -11,46 +12,11 @@ Basic Task Management: Manually add assignments, projects, and exam deadlines to
 Targeted Resource Suggestions: Based on the content you provide, the agent can suggest relevant external resources like YouTube videos, practice problems, or research papers to help you deepen your understanding.
 
 How It Works
+
 You Provide the Data: Instead of pulling from a university system, you upload your personal documents and enter your assignment details.
 
 The AI Processes: The agent uses Natural Language Processing (NLP) to analyze your files. It identifies key concepts, summarizes text, and extracts important information like due dates.
 
 It Offers Support: The agent then uses this processed information to provide you with summaries, timely reminders, and tailored suggestions to help you stay on top of your work and improve your learning.
 
-Getting Started
-Prerequisites
-Python 3.8+
 
-pip
-
-Installation
-Clone the repository to your local machine:
-
-Bash
-
-git clone https://github.com/ganjamsahithi/StudyCompanion.git
-cd StudyCompanion
-Create a virtual environment to manage dependencies:
-
-Bash
-
-python -m venv venv
-source venv/bin/activate # On Windows, use `venv\Scripts\activate`
-Install the required libraries:
-
-Bash
-
-pip install -r requirements.txt
-Usage
-Run the main script from the terminal to start the agent's command-line interface (CLI):
-
-Bash
-
-python src/main.py
-Follow the on-screen prompts to interact with the agent, upload files, and manage your tasks.
-
-Contributing
-We welcome contributions! If you have ideas for new features, bug fixes, or improvements, please feel free to open an issue or submit a pull request.
-
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
