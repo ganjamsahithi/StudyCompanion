@@ -1,0 +1,55 @@
+.dashboard {
+  flex-grow: 1;
+}
+
+.dashboard h2 {
+    color: #333;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.card h3 {
+  margin-top: 0;
+  color: #007bff;
+  margin-bottom: 1rem;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.card li:last-child {
+    border-bottom: none;
+}
+
+.card a {
+    color: #333;
+    text-decoration: none;
+}
+
+.card a:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+
+.chat-preview .chat-box {
+    background-color: #f0f2f5;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.chat-preview p {
+    margin: 0;
+    font-size: 0.95rem;
+}

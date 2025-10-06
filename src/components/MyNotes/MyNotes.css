@@ -1,0 +1,70 @@
+.my-notes-container h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.upload-box {
+  border: 2px dashed #007bff;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f0f7ff; /* Light blue background for emphasis */
+  margin-bottom: 2rem;
+}
+
+.upload-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.upload-btn:hover {
+  background-color: #0056b3;
+}
+
+.drag-and-drop-text {
+  margin-top: 1rem;
+  color: #555;
+  font-style: italic;
+}
+
+.notes-list h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.notes-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.notes-list li:last-child {
+  border-bottom: none;
+}
+
+.file-name {
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.upload-date {
+  font-size: 0.9em;
+  color: #888;
+  margin-right: 1.5rem;
+}
+
+.view-summary-btn {
+  background-color: #f0f2f5;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}

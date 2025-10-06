@@ -1,0 +1,90 @@
+.tasks-container h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.add-task-section {
+  margin-bottom: 2rem;
+}
+
+.add-task-section h4 {
+    margin-top: 0;
+    color: #007bff;
+}
+
+.task-input-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.task-input-group input {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  flex-grow: 1;
+}
+
+.task-input-group button {
+  padding: 0.75rem 1.5rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
+
+.task-input-group button:hover {
+  background-color: #0056b3;
+}
+
+.task-list h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.task-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-list li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.task-list li:last-child {
+  border-bottom: none;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.task-item input[type="checkbox"] {
+  margin-right: 1rem;
+  min-width: 1rem; /* ensures alignment */
+}
+
+.task-text {
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.due-date {
+  font-size: 0.9em;
+  color: #888;
+  margin-left: 1rem;
+  min-width: 80px;
+  text-align: right;
+}
+
+.completed .task-text, .completed .due-date {
+  text-decoration: line-through;
+  color: #aaa;
+}

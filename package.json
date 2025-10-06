@@ -2,6 +2,8 @@
   "name": "studycompanion",
   "version": "0.1.0",
   "private": true,
+  "description": "Agent Compass is an AI-powered academic assistant designed to help college students manage their studies more effectively. This agent goes beyond a regular chatbot by acting as a proactive companion, helping you manage notes, track assignments, and receive personalized study recommendations.",
+  "main": "index.js",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
@@ -35,5 +37,14 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ganjamsahithi/StudyCompanion.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ganjamsahithi/StudyCompanion/issues"
   }
 }
