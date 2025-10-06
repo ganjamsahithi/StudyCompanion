@@ -7,6 +7,16 @@ const Dashboard = () => {
       <h2>Welcome Back! Time to study.</h2>
       <div className="dashboard-grid">
         
+        {/* New Dedicated Reminders Card */}
+        <div className="card notifications-alerts">
+          <h3 style={{color: '#dc3545'}}>🔔 HIGH-PRIORITY ALERTS</h3>
+          <ul>
+            <li className="alert-item">⚠️ **Midterm Exam (CS 301) preparation phase starts today!**</li>
+            <li className="alert-item">📝 Essay (History 101) is due in 3 days. Focus!</li>
+          </ul>
+        </div>
+        
+        {/* Existing Upcoming Deadlines Card */}
         <div className="card upcoming-tasks">
           <h3>📅 Upcoming Deadlines</h3>
           <ul>
@@ -16,6 +26,17 @@ const Dashboard = () => {
           </ul>
         </div>
         
+        {/* Updated Materials Recommendation Card */}
+        <div className="card recommendations material-focus">
+          <h3>📚 Prep Materials: CS 301 Midterm</h3>
+          <p>The agent suggests you review these materials to start preparing:</p>
+          <ul>
+            <li><a href="#">Summary: Binary Trees & Graph Traversal</a> (Agent-Generated)</li>
+            <li><a href="#">Video: CS 301 Review Session (External Resource)</a></li>
+            <li><a href="#">Practice: Final Quiz on Sorting Algorithms</a></li>
+          </ul>
+        </div>
+
         <div className="card recent-summaries">
           <h3>📑 Recent Summaries</h3>
           <ul>
@@ -25,23 +46,6 @@ const Dashboard = () => {
           </ul>
         </div>
         
-        <div className="card recommendations">
-          <h3>💡 Personalized Recommendations</h3>
-          <p>Based on your performance in Physics, check these out:</p>
-          <ul>
-            <li>Video: Feynman Lectures on Physics (YouTube)</li>
-            <li>Practice: Problem Set 2 on Khan Academy</li>
-            <li>Paper: Review of Quantum Entanglement (ResearchGate)</li>
-          </ul>
-        </div>
-
-        <div className="card chat-preview">
-          <h3>💬 Chat with Agent</h3>
-          <div className="chat-box">
-            <p><strong>Agent:</strong> I see you are struggling with 'Centripetal Force'. Would you like a fresh explanation or more practice problems?</p>
-          </div>
-        </div>
-
       </div>
     </div>
   );

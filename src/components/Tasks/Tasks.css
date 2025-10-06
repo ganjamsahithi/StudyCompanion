@@ -17,7 +17,8 @@
     gap: 1rem;
 }
 
-.task-input-group input {
+.task-input-group input,
+.task-input-group select { /* Added select for styling consistency */
   padding: 0.75rem;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -35,6 +36,13 @@
 
 .task-input-group button:hover {
   background-color: #0056b3;
+}
+
+.task-list {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .task-list h4 {
@@ -68,12 +76,17 @@
 
 .task-item input[type="checkbox"] {
   margin-right: 1rem;
-  min-width: 1rem; /* ensures alignment */
+  min-width: 1rem;
 }
 
 .task-text {
   flex-grow: 1;
   font-weight: 500;
+}
+
+.task-course {
+    font-weight: bold;
+    color: #007bff;
 }
 
 .due-date {

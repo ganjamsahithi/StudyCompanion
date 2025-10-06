@@ -19,6 +19,21 @@
   margin-bottom: 1rem;
 }
 
+/* Specific styling for the new Alerts Card */
+.notifications-alerts {
+    background-color: #ffe0e0; /* Light red background */
+    border: 1px solid #dc3545;
+}
+
+.notifications-alerts h3 {
+    color: #dc3545 !important; 
+}
+
+.notifications-alerts .alert-item {
+    font-weight: 600;
+    color: #333;
+}
+
 .card ul {
   list-style: none;
   padding: 0;
@@ -43,13 +58,7 @@
     color: #0056b3;
 }
 
-.chat-preview .chat-box {
-    background-color: #f0f2f5;
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.chat-preview p {
-    margin: 0;
-    font-size: 0.95rem;
+/* Styling for the materials focus card */
+.material-focus {
+    border-left: 5px solid #007bff;
 }
