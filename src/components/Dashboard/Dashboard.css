@@ -6,59 +6,98 @@
     color: #333;
 }
 
+/* New layout for the meter and profile card */
+.top-row-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr; /* Meter on the left, profile card takes the rest */
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 2rem;
-  margin-top: 2rem;
 }
 
-.card h3 {
-  margin-top: 0;
-  color: #007bff;
-  margin-bottom: 1rem;
+/* --- Workload Meter & Profile Styling --- */
+.workload-meter {
+    padding: 1rem 1.5rem;
+}
+.workload-meter h3 {
+    text-align: center;
+}
+.meter-visual {
+    width: 150px;
+    height: 150px;
+    line-height: 150px;
+    border-radius: 50%;
+    margin: 10px auto;
+    text-align: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
 }
 
-/* Specific styling for the new Alerts Card */
+.learning-profile ul {
+    list-style: none;
+    padding: 0;
+}
+.learning-profile li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+.concept-tag {
+    font-weight: 600;
+    color: #dc3545;
+}
+.remediate-btn {
+    background-color: #f0f2f5;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+/* --- Existing Card Styling (Reminders, Prep, Summaries) --- */
 .notifications-alerts {
-    background-color: #ffe0e0; /* Light red background */
+    background-color: #ffe0e0;
     border: 1px solid #dc3545;
 }
-
 .notifications-alerts h3 {
     color: #dc3545 !important; 
 }
 
-.notifications-alerts .alert-item {
-    font-weight: 600;
-    color: #333;
+.material-type-tag {
+    font-weight: bold;
+    color: #5cb85c;
+    margin-right: 8px;
+    min-width: 60px;
+    display: inline-block;
 }
 
-.card ul {
-  list-style: none;
-  padding: 0;
-}
-
-.card li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f0f2f5;
-}
-
-.card li:last-child {
-    border-bottom: none;
-}
-
-.card a {
-    color: #333;
-    text-decoration: none;
-}
-
-.card a:hover {
+.card li:hover .material-link {
+    color: #007bff;
     text-decoration: underline;
-    color: #0056b3;
 }
 
-/* Styling for the materials focus card */
+.quiz-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: #ffc107;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.quiz-btn:hover {
+    background-color: #e0a800;
+}
 .material-focus {
     border-left: 5px solid #007bff;
 }

@@ -1,17 +1,19 @@
 import React from 'react';
 import './Sidebar.css';
 
-const Sidebar = ({ setActiveSection, activeSection }) => {
+// Added setIsModalOpen prop
+const Sidebar = ({ setActiveSection, activeSection, setIsModalOpen }) => {
   const menuItems = [
     { name: 'Dashboard', key: 'dashboard' },
     { name: 'My Notes', key: 'my-notes' },
     { name: 'Tasks & Deadlines', key: 'tasks' },
+    { name: 'Agent Chat', key: 'chat' },
   ];
 
   return (
     <div className="sidebar">
       <div className="logo-container">
-        {/* Logo/Name is moved to App.jsx header, this keeps the sidebar clean */}
+        {/* Placeholder for future logo */}
       </div>
       <nav className="nav-menu">
         <ul>
@@ -29,8 +31,9 @@ const Sidebar = ({ setActiveSection, activeSection }) => {
       <div className="quick-actions">
         <h4>Quick Actions</h4>
         <button className="action-btn upload">Upload Notes</button>
-        <button className="action-btn add-task">Add New Task</button>
-        <button className="action-btn ask-agent">Ask Agent</button>
+        {/* Button to open the Quick Add Modal */}
+        <button className="action-btn add-task" onClick={() => setIsModalOpen(true)}>Quick Add</button> 
+        <button className="action-btn ask-agent" onClick={() => setActiveSection('chat')}>Ask Agent</button>
       </div>
     </div>
   );

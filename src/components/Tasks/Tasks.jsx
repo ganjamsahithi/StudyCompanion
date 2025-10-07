@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import './Tasks.css';
 
-// Function to get today's date in YYYY-MM-DD format for the input min attribute
 const getTodayDate = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 };
@@ -21,10 +20,10 @@ const Tasks = () => {
   const [newType, setNewType] = useState('Assignment');
   const [newCourse, setNewCourse] = useState('');
   
-  const today = getTodayDate(); // Get today's date for the calendar minimum
+  const today = getTodayDate();
 
   const handleAddTask = () => {
-    if (newTask.trim() !== '' && newDueDate) { // Ensure due date is also checked
+    if (newTask.trim() !== '' && newDueDate) { 
       const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
       
       setTasks([
@@ -35,15 +34,13 @@ const Tasks = () => {
           type: newType, 
           course: newCourse || 'General',
           completed: false, 
-          dueDate: newDueDate // Date is now in YYYY-MM-DD format
+          dueDate: newDueDate 
         }
       ]);
       setNewTask('');
       setNewDueDate('');
       setNewCourse('');
       setNewType('Assignment');
-      
-      // In a real app, you'd send this data to the backend here.
     }
   };
 
@@ -59,32 +56,28 @@ const Tasks = () => {
       <div className="add-task-section card">
         <h4>Add New Deadline</h4>
         <div className="task-input-group">
-            {/* Task Type */}
             <select value={newType} onChange={(e) => setNewType(e.target.value)}>
                 <option value="Assignment">Assignment</option>
                 <option value="Exam">Exam</option>
             </select>
-            {/* Course Name */}
             <input
               type="text"
               placeholder="Course Name (e.g., CS 301)"
               value={newCourse}
               onChange={(e) => setNewCourse(e.target.value)}
             />
-            {/* Task Name */}
             <input
               type="text"
               placeholder="Task Name (e.g., Study for Midterm)"
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
             />
-            {/* Due Date - Now a Date Picker */}
             <input
               type="date"
               title="Select Deadline Date"
               value={newDueDate}
               onChange={(e) => setNewDueDate(e.target.value)}
-              min={today} // This prevents selecting previous dates
+              min={today}
             />
             <button onClick={handleAddTask}>Add Deadline</button>
         </div>
@@ -104,7 +97,6 @@ const Tasks = () => {
                     <span className="task-course">[{task.course}] </span>
                     {task.text} 
                 </span>
-                {/* Displaying date directly from the YYYY-MM-DD format */}
                 <span className="due-date">Due: {task.dueDate}</span> 
               </label>
             </li>
