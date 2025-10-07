@@ -1,7 +1,7 @@
 import React from 'react';
 import './Dashboard.css';
-import WorkloadMeter from './WorkloadMeter'; // NEW IMPORT
-import LearningProfileCard from './LearningProfileCard'; // NEW IMPORT
+import WorkloadMeter from './WorkloadMeter';
+import LearningProfileCard from './LearningProfileCard';
 
 const handleMaterialClick = (type, material) => {
     alert(`Action: ${type} requested for material: ${material}`);
@@ -12,11 +12,12 @@ const Dashboard = ({ setActiveSection }) => {
     <div className="dashboard">
       <h2>Welcome Back! Time to study.</h2>
       
+      {/* --- WORKLOAD & WEAKNESS TRACKING --- */}
       <div className="top-row-grid">
-        <WorkloadMeter stressScore={75} /> {/* Example Data */}
+        <WorkloadMeter stressScore={75} />
         <LearningProfileCard />
       </div>
-
+      
       <div className="dashboard-grid">
         
         {/* HIGH-PRIORITY ALERTS */}
@@ -38,33 +39,32 @@ const Dashboard = ({ setActiveSection }) => {
           </ul>
         </div>
         
-        {/* AUTOMATED PREP MATERIALS CARD */}
+        {/* EXAM PREDICTION & MATERIALS */}
         <div className="card recommendations material-focus">
-          <h3>📚 Prep Materials: Data Structures Midterm</h3>
-          <p>The agent has automatically curated these resources:</p>
+          <h3>🎓 Exam Prediction: Data Structures Midterm</h3>
+          <p>Agent analysis suggests focusing on these topics for high probability:</p>
           <ul>
-            <li onClick={() => handleMaterialClick('Summary', 'Binary Trees')}>
-                <span className="material-type-tag">[Summary]</span> 
-                <span className="material-link">Binary Trees & Graph Traversal (Agent-Generated)</span>
+            <li onClick={() => handleMaterialClick('Roadmap', '7-Day Plan')}>
+                <span className="material-type-tag">[Roadmap]</span> 
+                <span className="material-link">Custom 7-Day Revision Plan (Personalized)</span>
             </li>
-            <li onClick={() => handleMaterialClick('Video', 'Review Session')}>
-                <span className="material-type-tag">[Video]</span> 
-                <span className="material-link">Data Structures Review Session (External)</span>
+            <li onClick={() => handleMaterialClick('TopicFocus', 'Emphasis Areas')}>
+                <span className="material-type-tag">[Topic Focus]</span> 
+                <span className="material-link">Top 5 Emphasis Areas (Professor's Past Tests)</span>
             </li>
-            <li onClick={() => handleMaterialClick('Paper', 'Sorting Algorithms')}>
-                <span className="material-type-tag">[Paper]</span> 
+            <li onClick={() => handleMaterialClick('Practice', 'Sorting Algorithms')}>
+                <span className="material-type-tag">[Practice]</span> 
                 <span className="material-link">Advanced Sorting Algorithms Review</span>
             </li>
           </ul>
           
           <hr style={{margin: '10px 0'}} />
           
-          {/* Dedicated Quiz Button - ROUTED TO NEW QUIZ COMPONENT */}
           <button 
               className="quiz-btn" 
               onClick={() => setActiveSection('quiz')} 
           >
-              🧠 Generate Quick Quiz Now
+              🧠 Generate Predicted Exam Questions
           </button>
         </div>
 

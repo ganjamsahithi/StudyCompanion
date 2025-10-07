@@ -1,0 +1,654 @@
+.career-path {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.career-header {
+  margin-bottom: 2rem;
+}
+
+.career-header h2 {
+  font-size: 2rem;
+  color: #1a73e8;
+  margin-bottom: 0.5rem;
+}
+
+.career-header p {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Career Selector */
+.career-selector {
+  margin-bottom: 2rem;
+}
+
+.career-selector label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.career-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.career-btn {
+  padding: 1.5rem;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.career-btn:hover {
+  border-color: #1a73e8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.career-btn.active {
+  border-color: #1a73e8;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+}
+
+.career-icon {
+  font-size: 2rem;
+}
+
+.career-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+/* Career Overview Card */
+.career-overview-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.career-overview-card h3 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.career-overview-card > p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 1.5rem;
+}
+
+.skills-progress {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.progress-percent {
+  font-size: 1.2rem;
+}
+
+.overall-progress-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.overall-progress-fill {
+  height: 100%;
+  background: white;
+  transition: width 0.5s ease;
+}
+
+/* Tabs */
+.career-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tab {
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab:hover {
+  color: #1a73e8;
+  background: rgba(26, 115, 232, 0.05);
+}
+
+.tab.active {
+  color: #1a73e8;
+  border-bottom-color: #1a73e8;
+}
+
+/* Overview Section */
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.skills-column h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skill-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.skill-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.skill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.skill-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.skill-level {
+  font-weight: 700;
+  color: #1a73e8;
+}
+
+.skill-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.skill-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 4px;
+}
+
+.skill-source {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.skill-card.needed {
+  border-left: 4px solid #ff9800;
+}
+
+.priority-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.priority-badge.high {
+  background: #ff9800;
+  color: white;
+}
+
+.priority-badge.medium {
+  background: #ffc107;
+  color: #333;
+}
+
+.skill-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.time-estimate {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.learn-btn {
+  padding: 0.5rem 1rem;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.learn-btn:hover {
+  background: #1557b0;
+}
+
+/* Learning Path */
+.learning-path-section {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.learning-path-section h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.learning-timeline {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.timeline-phase {
+  position: relative;
+  padding-left: 2rem;
+  border-left: 3px solid #1a73e8;
+  flex: 1 1 300px;
+}
+
+.phase-label {
+  font-weight: 700;
+  color: #1a73e8;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.resources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.resource-item:hover {
+  background: #e3f2fd;
+}
+
+.resource-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.resource-info {
+  flex: 1;
+}
+
+.resource-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.resource-meta {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Connections Section */
+.connections-intro {
+  margin-bottom: 1.5rem;
+}
+
+.connections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.connection-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.connection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.connection-header h4 {
+  color: #333;
+  margin: 0;
+}
+
+.companies-tag {
+  background: #f0f2f5;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.connection-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.real-world-app, .example-box {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.project-suggestion {
+  background: #e3f2fd;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #1a73e8;
+  text-align: center;
+}
+
+/* Internships Section */
+.internships-header {
+  margin-bottom: 1.5rem;
+}
+
+.internships-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.internship-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.internship-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.internship-header h4 {
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.position {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.match-score {
+  text-align: center;
+}
+
+.match-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 0 4px #f0f2f5;
+}
+
+.match-inner {
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.match-label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 5px;
+}
+
+.internship-description {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.internship-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  padding: 1rem 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1.5rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.required-skills {
+  margin-bottom: 1.5rem;
+}
+
+.required-skills strong {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-tag {
+  background: #e3f2fd;
+  color: #1a73e8;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.internship-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.apply-btn {
+  padding: 0.75rem 1.5rem;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.save-btn {
+  padding: 0.75rem 1.5rem;
+  background: #f0f2f5;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Portfolio Section */
+.portfolio-header {
+  margin-bottom: 1.5rem;
+}
+
+.portfolio-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.portfolio-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.portfolio-header-section {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.portfolio-header-section h4 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.portfolio-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.demo-link {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.course-tags strong, .skills-demonstrated strong, .project-impact strong, .project-features strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.course-tags, .skills-demonstrated {
+  margin-bottom: 1rem;
+}
+
+.course-tag {
+  background: #e6e6fa;
+  color: #6a5acd;
+  padding: 0.3rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.skill-tag-portfolio {
+  background: #f0f2f5;
+  color: #555;
+  padding: 0.3rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.project-features ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.build-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+/* Responsive Overrides */
+@media (max-width: 992px) {
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .career-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

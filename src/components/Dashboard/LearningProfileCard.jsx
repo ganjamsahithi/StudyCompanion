@@ -1,7 +1,8 @@
 import React from 'react';
-import './Dashboard.css'; // Uses Dashboard.css for styling
+import './Dashboard.css';
 
 const LearningProfileCard = () => {
+    // Mock data based on Chat/Quiz history
     const weakConcepts = [
         { concept: 'Graph Traversal', course: 'Data Structures' },
         { concept: 'Thermodynamics', course: 'Physics' },

@@ -1,5 +1,5 @@
 import React from 'react';
-import './Dashboard.css'; // Uses Dashboard.css for styling
+import './Dashboard.css';
 
 const WorkloadMeter = ({ stressScore = 75 }) => {
     let status = 'High (Focus Needed)';

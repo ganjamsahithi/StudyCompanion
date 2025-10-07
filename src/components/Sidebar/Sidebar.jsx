@@ -8,8 +8,10 @@ const Sidebar = ({ setActiveSection, activeSection, setIsModalOpen }) => {
     { name: 'My Notes', key: 'my-notes' },
     { name: 'Tasks & Deadlines', key: 'tasks' },
     { name: 'Agent Chat', key: 'chat' },
-    { name: 'Exam Prediction', key: 'exam-prediction' },
+    { name: 'Exam Predictor', key: 'exam-prediction' }, // NEW
+    { name: 'Career Hub', key: 'career-hub' }, // NEW
   ];
+  
 
   return (
     <div className="sidebar">

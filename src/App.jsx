@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import MyNotes from './components/MyNotes/MyNotes';
 import Tasks from './components/Tasks/Tasks';
 import Chat from './components/Chat/Chat';
+import CareerHub from './components/Career/CareerHub'; // Career Path Integration
 import QuizInterface from './components/Quiz/QuizInterface'; // NEW IMPORT
 import QuickAddModal from './components/Shared/QuickAddModal'; // NEW IMPORT
 import ExamPredictor from './components/ExamPredictor/ExamPredictor.jsx';
@@ -28,11 +29,10 @@ const renderSection = () => {
             return <Chat />;
         case 'quiz':
             return <QuizInterface setActiveSection={setActiveSection} />;
+        case 'career-hub': 
+            return <CareerHub />;
         case 'exam-prediction':
             return <ExamPredictor />;
-        // Remove this case block:
-        // case 'career-path':
-        //     return <CareerPath />;
         default:
             return <Dashboard setActiveSection={setActiveSection} />;
     }
