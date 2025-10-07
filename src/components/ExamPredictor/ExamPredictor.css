@@ -1,0 +1,577 @@
+.exam-predictor {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.predictor-header {
+  margin-bottom: 2rem;
+}
+
+.predictor-header h2 {
+  font-size: 2rem;
+  color: #1a73e8;
+  margin-bottom: 0.5rem;
+}
+
+.predictor-header p {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Course Selector */
+.course-selector {
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.course-selector label {
+  font-weight: 600;
+  color: #333;
+}
+
+.course-dropdown {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 300px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.course-dropdown:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+/* Exam Info Banner */
+.exam-info-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.exam-info-banner > div {
+  text-align: center;
+}
+
+.exam-info-banner .label {
+  display: block;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.exam-info-banner .date {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.exam-info-banner .number {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+/* Tabs */
+.predictor-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tab {
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab:hover {
+  color: #1a73e8;
+  background: rgba(26, 115, 232, 0.05);
+}
+
+.tab.active {
+  color: #1a73e8;
+  border-bottom-color: #1a73e8;
+}
+
+/* Predictions Section */
+.predictions-section {
+  display: grid;
+  gap: 2rem;
+}
+
+.section-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.section-card h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.section-description {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Topics List */
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.topic-item {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #1a73e8;
+}
+
+.topic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.topic-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 1.05rem;
+}
+
+.importance-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.importance-badge.critical {
+  background: #ff4444;
+  color: white;
+}
+
+.importance-badge.high {
+  background: #ff9800;
+  color: white;
+}
+
+.importance-badge.medium {
+  background: #ffc107;
+  color: #333;
+}
+
+.probability-bar {
+  background: #e0e0e0;
+  height: 30px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.probability-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  display: flex;
+  align-items: center;
+  padding-left: 0.75rem;
+  transition: width 0.5s ease;
+}
+
+.probability-text {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.topic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.last-appeared {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Emphasis List */
+.emphasis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.emphasis-item {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.emphasis-topic {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.emphasis-stats {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Practice Section */
+.practice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.practice-header h3 {
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.generate-quiz-btn {
+  padding: 0.75rem 1.5rem;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.generate-quiz-btn:hover {
+  background: #1557b0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.question-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.question-number {
+  font-weight: 600;
+  color: #666;
+}
+
+.question-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.difficulty {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.difficulty.easy {
+  background: #d4edda;
+  color: #155724;
+}
+
+.difficulty.medium {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.difficulty.hard {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.time {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.question-text {
+  font-size: 1.05rem;
+  color: #333;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.question-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topic-tag {
+  padding: 0.25rem 0.75rem;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.attempt-btn {
+  padding: 0.5rem 1rem;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.attempt-btn:hover {
+  background: #1557b0;
+}
+
+/* Roadmap Section */
+.roadmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.roadmap-header h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.roadmap-summary {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.export-btn {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #1a73e8;
+  border: 2px solid #1a73e8;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.export-btn:hover {
+  background: #1a73e8;
+  color: white;
+}
+
+/* Phases Timeline */
+.phases-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.phase-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.phase-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.phase-header {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.phase-number {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.phase-info h4 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.phase-duration {
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.phase-tasks {
+  padding: 1.5rem;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.task-item:hover {
+  background: #e3f2fd;
+}
+
+.task-item input[type="checkbox"] {
+  margin-top: 0.25rem;
+  margin-right: 1rem;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.task-item label {
+  flex: 1;
+  cursor: pointer;
+}
+
+.task-text {
+  display: block;
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.task-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.task-hours {
+  color: #666;
+}
+
+.task-priority {
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.task-priority.critical {
+  background: #ff4444;
+  color: white;
+}
+
+.task-priority.high {
+  background: #ff9800;
+  color: white;
+}
+
+.task-priority.medium {
+  background: #ffc107;
+  color: #333;
+}
+
+/* No Data State */
+.no-data {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #666;
+}
+
+.no-data p {
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .exam-info-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .predictor-tabs {
+    overflow-x: auto;
+  }
+
+  .practice-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .roadmap-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

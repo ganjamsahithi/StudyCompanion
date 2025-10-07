@@ -8,6 +8,7 @@ const Sidebar = ({ setActiveSection, activeSection, setIsModalOpen }) => {
     { name: 'My Notes', key: 'my-notes' },
     { name: 'Tasks & Deadlines', key: 'tasks' },
     { name: 'Agent Chat', key: 'chat' },
+    { name: 'Exam Prediction', key: 'exam-prediction' },
   ];
 
   return (
