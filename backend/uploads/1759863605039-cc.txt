@@ -1,0 +1,5 @@
+Cloud computing is the on-demand delivery of IT resources like servers, storage, software, and databases over the internet, allowing users to access services and data remotely from anywhere, anytime, instead of managing their own physical hardware. This "pay-as-you-go" model provides flexibility, scalability, and cost savings, as users only pay for the resources they consume, making it a powerful tool for innovation for businesses and individuals alike. 
+How it Works
+Remote Access: Instead of storing data on your local computer, it's stored on remote servers maintained by cloud providers. 
+On-Demand Services: You can access computing power, storage, and software as needed without purchasing and managing your own physical infrastructure. 
+Internet-Based Delivery: All these services and data are delivered to you over the internet. 

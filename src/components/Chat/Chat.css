@@ -81,3 +81,25 @@
 .chat-input-area button:hover {
   background-color: #0056b3;
 }
+/* --- New Styles for Typing Indicator --- */
+
+.typing-indicator {
+    font-style: italic;
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+.chat-input-area button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.chat-input-area input:disabled {
+    background-color: #f1f1f1;
+    cursor: not-allowed;
+}

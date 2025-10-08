@@ -1,103 +1,147 @@
-.tasks-container h2 {
-  margin-bottom: 1.5rem;
-  color: #333;
+/* --- TASKS COMPONENT STYLING --- */
+
+.tasks-container {
+    padding: 20px;
 }
 
-.add-task-section {
-  margin-bottom: 2rem;
+.add-task-section, .task-list {
+    background-color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 25px;
 }
 
-.add-task-section h4 {
-    margin-top: 0;
+h2 {
+    font-size: 1.8rem;
     color: #007bff;
+    margin-bottom: 20px;
 }
 
+h4 {
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+/* Input Group Styling */
 .task-input-group {
     display: flex;
-    gap: 1rem;
+    gap: 10px;
+    align-items: center;
 }
 
 .task-input-group input,
 .task-input-group select {
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1rem;
-  flex-grow: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    flex-grow: 1;
 }
 
 .task-input-group button {
-  padding: 0.75rem 1.5rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 8px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
 }
 
 .task-input-group button:hover {
-  background-color: #0056b3;
+    background-color: #0056b3;
 }
 
-.task-list {
-  background-color: #fff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-}
-
-.task-list h4 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #555;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 0.5rem;
-}
-
+/* Task List Styling */
 .task-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+    list-style: none;
+    padding: 0;
 }
 
 .task-list li {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f0f2f5;
+    padding: 15px 0;
+    border-bottom: 1px solid #eee;
 }
 
 .task-list li:last-child {
-  border-bottom: none;
+    border-bottom: none;
 }
 
 .task-item {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #333;
 }
 
 .task-item input[type="checkbox"] {
-  margin-right: 1rem;
-  min-width: 1rem;
+    margin-right: 15px;
+    transform: scale(1.2);
 }
 
 .task-text {
-  flex-grow: 1;
-  font-weight: 500;
+    flex-grow: 1;
+    margin-right: 20px;
 }
 
 .task-course {
     font-weight: bold;
-    color: #007bff;
+    color: #555;
+    margin-right: 5px;
 }
 
 .due-date {
-  font-size: 0.9em;
-  color: #888;
-  margin-left: 1rem;
-  min-width: 80px;
-  text-align: right;
+    font-size: 0.85rem;
+    color: #999;
+    flex-shrink: 0;
 }
 
-.completed .task-text, .completed .due-date {
-  text-decoration: line-through;
-  color: #aaa;
+/* --- THE TOGGLING FIX --- */
+
+.task-list li.completed .task-text,
+.task-list li.completed .task-course,
+.task-list li.completed .due-date {
+    text-decoration: line-through; /* This adds the strikethrough */
+    color: #b0b0b0; /* Makes completed text lighter */
+}
+
+/* Optional: Hide completed tasks if the user prefers that */
+/* .task-list li.completed {
+    display: none; 
+}
+*/
+
+/* Message Box Styling */
+.message-box {
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.message-box.hidden {
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.message-box.error {
+    background-color: #ffe6e6;
+    color: #cc0000;
+    border: 1px solid #ffcccc;
+}
+
+.message-box.success {
+    background-color: #e6ffe6;
+    color: #008000;
+    border: 1px solid #ccffcc;
 }
