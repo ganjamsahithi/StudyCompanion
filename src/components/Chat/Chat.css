@@ -1,88 +1,289 @@
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-height: calc(100vh - 4rem); 
+/* src/components/Chat/Chat.css */
+/* Main Container for Split View */
+.chat-interface {
+    display: flex;
+    height: calc(100vh - 4rem);
+    padding: 20px;
+    gap: 20px;
+}
+
+/* Chat Sidebar (Left Column - Thread List) */
+.chat-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background-color: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.new-chat-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: background-color 0.2s;
+}
+
+.new-chat-btn:hover {
+    background-color: #0056b3;
+}
+
+.new-chat-btn.active-new-chat {
+    background-color: #0056b3;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+}
+
+.thread-list-container {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* Thread Item - Main Container */
+.thread-item {
+    margin-bottom: 5px;
+    border-radius: 8px;
+    transition: background-color 0.15s;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 0;
+}
+
+.thread-item:hover {
+    background-color: #f0f0f0;
+}
+
+.thread-item.active {
+    background-color: #e6f0ff;
+}
+
+/* Thread Content (Clickable Area) */
+.thread-content {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    font-size: 0.9rem;
+    overflow: hidden;
+}
+
+.thread-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    color: #333;
+}
+
+.thread-item.active .thread-title {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.thread-date {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 2px;
+}
+
+.thread-item.active .thread-date {
+    color: #007bff;
+}
+
+/* Three-Dot Menu Button */
+.management-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.3rem;
+    color: #999;
+    padding: 10px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+    height: 100%;
+    letter-spacing: 2px;
+}
+
+.management-toggle-btn:hover {
+    color: #333;
+}
+
+/* Management Menu Dropdown */
+.thread-management-menu {
+    position: absolute;
+    top: 100%;
+    right: 10px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    margin-top: 5px;
+}
+
+/* Rename Input Group */
+.rename-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 5px;
+}
+
+.rename-input {
+    flex-grow: 1;
+    padding: 6px 10px;
+    border: 2px solid #007bff;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.rename-input:focus {
+    border-color: #0056b3;
+}
+
+/* Action Icons */
+.action-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 6px 8px;
+    color: #666;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    border-radius: 4px;
+}
+
+.rename-icon {
+    color: #28a745;
+    font-size: 1.1rem;
+}
+
+.rename-icon:hover {
+    background-color: #d4edda;
+    color: #1e7e34;
+}
+
+/* Delete Button */
+.delete-icon {
+    color: #dc3545;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    width: 100%;
+    gap: 5px;
+}
+
+.delete-icon:hover {
+    background-color: #ffe6e6;
+    border-color: #f5c6cb;
+    color: #a71d2a;
+}
+
+/* Chat Main Content (Right Column - Conversation Area) */
+.chat-main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-main-content h2 {
+    font-size: 1.8rem;
+    color: #007bff;
+    margin-bottom: 20px;
+    padding-left: 10px;
 }
 
 .chat-box {
-  flex-grow: 1;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  margin-top: 1.5rem;
+    flex-grow: 1;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .message-history {
-  flex-grow: 1;
-  padding: 1rem;
-  overflow-y: auto;
+    flex-grow: 1;
+    padding: 1rem;
+    overflow-y: auto;
 }
 
 .message {
-  display: flex;
-  margin-bottom: 10px;
+    display: flex;
+    margin-bottom: 15px;
 }
 
 .message.student {
-  justify-content: flex-end;
+    justify-content: flex-end;
 }
 
 .message-bubble {
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 20px;
-  line-height: 1.4;
-  font-size: 0.95rem;
-  word-wrap: break-word;
+    max-width: 75%;
+    padding: 12px 18px;
+    border-radius: 20px;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    word-wrap: break-word;
+    display: block;
+}
+
+.message-bubble strong {
+    font-weight: 700;
+    color: #0056b3;
 }
 
 .message.agent .message-bubble {
-  background-color: #e9ecef; 
-  color: #333;
-  border-bottom-left-radius: 5px;
+    background-color: #f7faff;
+    color: #333;
+    border-bottom-left-radius: 5px;
 }
 
 .message.student .message-bubble {
-  background-color: #007bff; 
-  color: white;
-  border-bottom-right-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    border-bottom-right-radius: 5px;
 }
 
-.chat-input-area {
-  display: flex;
-  padding: 1rem;
-  border-top: 1px solid #eee;
-  background-color: #fff;
+.message-bubble p {
+    margin-top: 0;
+    margin-bottom: 10px;
 }
 
-.chat-input-area input {
-  flex-grow: 1;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  margin-right: 10px;
-  font-size: 1rem;
+.message-bubble p:last-child {
+    margin-bottom: 0;
 }
 
-.chat-input-area button {
-  padding: 0.75rem 1.5rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+.message-bubble ul {
+    margin: 10px 0;
+    padding-left: 20px;
 }
 
-.chat-input-area button:hover {
-  background-color: #0056b3;
+.message-bubble li {
+    margin-bottom: 5px;
 }
-/* --- New Styles for Typing Indicator --- */
 
+/* Typing Indicator */
 .typing-indicator {
     font-style: italic;
     animation: blink 1.5s infinite;
@@ -94,12 +295,78 @@
     100% { opacity: 0.5; }
 }
 
+/* Chat Input Area */
+.chat-input-area {
+    display: flex;
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    background-color: #fff;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.chat-input-area input {
+    flex-grow: 1;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-right: 10px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.chat-input-area input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.chat-input-area button {
+    padding: 0.75rem 1.5rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.chat-input-area button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
 .chat-input-area button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
 }
 
-.chat-input-area input:disabled {
-    background-color: #f1f1f1;
-    cursor: not-allowed;
+/* Loading State */
+.thread-loading {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-style: italic;
+}
+
+/* Scrollbar Styling */
+.thread-list-container::-webkit-scrollbar,
+.message-history::-webkit-scrollbar {
+    width: 6px;
+}
+
+.thread-list-container::-webkit-scrollbar-track,
+.message-history::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.thread-list-container::-webkit-scrollbar-thumb,
+.message-history::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.thread-list-container::-webkit-scrollbar-thumb:hover,
+.message-history::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
