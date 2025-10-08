@@ -1,7 +1,6 @@
 // src/components/Chat/Chat.jsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-// src/components/Chat/Chat.jsx
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+
 import './Chat.css';
 
 const API_BASE_URL = 'http://localhost:5000/chat';
