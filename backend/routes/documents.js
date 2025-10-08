@@ -3,8 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// IMPORTANT: Assume these helper libraries are installed (e.g., npm install @google/genai mongoose)
-let Document = require('../models/document.model');
+// IMPORTANT: Assume these helper libraries are installed and functional
+const Document = require('../models/document.model');
 const aiService = require('../services/ai.service'); 
 
 // --- File Upload Setup (Multer) ---
@@ -27,7 +27,6 @@ const storage = multer.diskStorage({
 
 // Filter file types
 const fileFilter = (req, file, cb) => {
-    // Allows PDF, DOCX, TXT. This is a basic filter; MIME types are more reliable.
     const allowedExtensions = /\.(pdf|docx|txt|doc)$/i; 
     const isAllowed = allowedExtensions.test(file.originalname);
     
@@ -51,7 +50,6 @@ const upload = multer({
 
 // GET /documents/ - List all uploaded documents
 router.route('/').get((req, res) => {
-    // Ensure the data being returned matches the frontend's expected schema (file.fileName, file.uploadedDate, file._id, file.summary)
     Document.find()
         .sort({ uploadedDate: -1 })
         .then(documents => res.json(documents))
@@ -61,7 +59,6 @@ router.route('/').get((req, res) => {
 // POST /documents/upload - Upload a new document and save metadata
 router.route('/upload').post(upload.single('document'), (req, res) => {
     if (!req.file) {
-        // Multer error handling (e.g., file limit exceeded or type rejected)
         const fileError = req.fileValidationError || 'No file selected.';
         return res.status(400).json({ message: `Error: ${fileError}` });
     }
@@ -70,7 +67,6 @@ router.route('/upload').post(upload.single('document'), (req, res) => {
     const filePath = req.file.path;
     const fileMimeType = req.file.mimetype;
     const userId = req.body.userId || 'default_user'; 
-    // Assuming 'course' is sent via form data (req.body.course)
     const course = req.body.course || 'General Study'; 
 
     const newDocument = new Document({
@@ -79,63 +75,74 @@ router.route('/upload').post(upload.single('document'), (req, res) => {
         fileMimeType,
         userId,
         course,
-        summary: null, // Summary is null initially
-        // Note: Raw text extraction should happen in aiService later, not here.
+        summary: null,
     });
 
     newDocument.save()
         .then(doc => res.json({ message: 'Document uploaded successfully, awaiting summary.', document: doc }))
         .catch(err => {
-            // Clean up file if database saving fails
             fs.unlink(filePath, (err) => { if (err) console.error("Error cleaning up file:", err); });
             res.status(400).json('Error saving document metadata: ' + err);
         });
 });
 
+// backend/routes/documents.js (Focusing on the POST /summarize/:id route)
+
+// ... (Other routes and setup remain the same) ...
+
 // POST /documents/summarize/:id - Trigger AI summarization and update document
 router.route('/summarize/:id').post(async (req, res) => {
     try {
-        const doc = await Document.findById(req.params.id);
+        const docId = req.params.id;
+        const doc = await Document.findById(docId);
 
         if (!doc) {
             return res.status(404).json({ message: 'Document not found.' });
         }
         
-        // If summary already exists, return it immediately to save AI cost
+        // If summary already exists, return it immediately
         if (doc.summary) {
-            return res.json({ 
-                message: 'Summary already generated.',
-                summary: doc.summary 
-            });
+            return res.json({ message: 'Summary already generated.', summary: doc.summary });
         }
 
-        // 1. Trigger the AI Service to handle file type conversion, read, and summarize
+        // 1. Generate Summary Text (Assuming aiService handles file reading and returns clean text)
         const { summaryText, error } = await aiService.generateSummaryFromDocument(doc.filePath, doc.fileName);
 
         if (error) {
-            // This is the error seen on the frontend for corrupted/binary files
-            return res.status(400).json({ 
-                message: 'File processing failed.', 
-                error: error 
-            });
+            return res.status(400).json({ message: error, error: error });
         }
         
-        // 2. Save the generated summary back to the database
-        doc.summary = summaryText;
-        await doc.save();
+        // 2. CRITICAL FIX: Use findByIdAndUpdate to perform a single, atomic update
+        // This is often more reliable than doc.summary = X; doc.save()
+        const updatedDoc = await Document.findByIdAndUpdate(
+            docId, 
+            { summary: summaryText },
+            { new: true, runValidators: true } // Return the new doc and enforce schema
+        );
 
-        res.json({ message: 'Summary generated successfully.', summary: summaryText });
+        if (!updatedDoc) {
+             // This indicates a race condition or failed update
+             throw new Error("Database update failed after AI process.");
+        }
+
+        // 3. Return the generated summary
+        res.status(200).json({ message: 'Summary generated successfully.', summary: updatedDoc.summary });
 
     } catch (error) {
-        console.error('AI Summarization/File Error:', error);
-        res.status(500).json({ message: 'Failed to generate summary due to server error.', error: error.message });
+        // CATCH BLOCK: Guarantees a JSON response, preventing the <!DOCTYPE> error
+        console.error('AI Summarization/Route Crash Error:', error);
+        
+        // If the error is from Mongoose (e.g., CastError, validation failure), 
+        // we return a 400 or 500 status with a JSON body.
+        res.status(500).json({ 
+            message: 'Internal Server Error during summarization. Check backend console.', 
+            error: error.message || String(error) 
+        });
     }
 });
 
-
 // GET /documents/summary/:id - Get a specific document's summary
 router.route('/summary/:id').get((req, res) => {
-    // This route is called by the frontend to check if a summary exists before attempting generation
     Document.findById(req.params.id)
         .then(doc => {
             if (!doc) {
@@ -147,8 +154,7 @@ router.route('/summary/:id').get((req, res) => {
 });
 
 
-/// --- NEW ROUTE: DELETE /documents/:id (FIXED RESTful Path) ---
-// This handles the request: DELETE http://localhost:8000/documents/DOC_ID
+// --- NEW ROUTE: DELETE /documents/:id (RESTful Path) ---
 router.route('/:id').delete(async (req, res) => {
     try {
         const docId = req.params.id;
@@ -157,7 +163,6 @@ router.route('/:id').delete(async (req, res) => {
         const doc = await Document.findById(docId);
         
         if (!doc) {
-            // Send success message even if not found, because the desired state (deleted) is achieved.
             return res.status(200).json({ message: 'Document not found, deletion status verified.' });
         }
         
@@ -182,7 +187,6 @@ router.route('/:id').delete(async (req, res) => {
 
     } catch (error) {
         console.error('Document Deletion Error:', error);
-        // Specifically check for Mongoose/MongoDB ID errors
         if (error.kind === 'ObjectId') {
             return res.status(400).json({ message: 'Invalid document ID format.', error: error.message });
         }

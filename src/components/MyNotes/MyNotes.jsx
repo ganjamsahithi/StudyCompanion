@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './MyNotes.css';
 
 // Base URL for the backend API (Must match your Express/Node.js setup on port 8000)
-const API_BASE_URL = 'http://localhost:8000/documents'; 
+const API_BASE_URL = 'http://localhost:5000/documents'; 
 
 // --- Helper Function: Markdown to HTML Conversion (Crucial for rendering summaries) ---
 const markdownToHtml = (markdown) => {
@@ -55,7 +55,7 @@ const markdownToHtml = (markdown) => {
     return html;
 };
 
-// --- File Drop Zone Component (Remains the same) ---
+// --- File Drop Zone Component ---
 const FileDropZone = ({ onFileSelect }) => {
     const [dragging, setDragging] = useState(false);
 
@@ -115,6 +115,7 @@ const MyNotes = () => {
             }
             const data = await response.json();
             setUploadedFiles(data);
+            setMessage({ text: 'Documents loaded successfully.', type: 'success' }); 
         } catch (error) {
             setMessage({ text: 'CONNECTION ERROR: Backend not running or check console.', type: 'error' });
             console.error('Fetch Documents Error:', error);
@@ -165,7 +166,11 @@ const MyNotes = () => {
         }
     };
 
-    // 3. GET/POST: Handle View/Generate Summary
+    // src/components/MyNotes/MyNotes.jsx (Focusing on handleViewSummary)
+
+// ... (code above handleViewSummary remains the same) ...
+
+    // 3. GET/POST: Handle View/Generate Summary (FINAL FIX)
     const handleViewSummary = async (docId, fileName) => {
         // 1. Toggle summary display if already selected
         if (expandedDocId === docId) {
@@ -184,29 +189,45 @@ const MyNotes = () => {
         // 3. Summary does not exist: trigger generation API call
         setIsSummaryLoading(true);
         setMessage({ text: `Generating summary for ${fileName}...`, type: 'info' });
-        setExpandedDocId(docId); 
+        setExpandedDocId(docId); // Show the loading state under the document
 
         try {
             // API call: POST /documents/summarize/{docId}
             const response = await fetch(API_BASE_URL + `/summarize/${docId}`, { method: 'POST' });
             
             if (!response.ok) {
-                const errorData = await response.json();
+                // Read the error message from the backend's JSON response
+                const errorData = await response.json(); 
                 throw new Error(errorData.message || 'AI summarization failed.');
             }
             
-            // Assume backend updates DB; we refresh list to get the new summary
-            setMessage({ text: 'Summary generated successfully.', type: 'success' });
+            // --- CRITICAL FIX: GET THE SUMMARY FROM THE RESPONSE AND UPDATE STATE ---
+            const data = await response.json();
+            
+            // 1. Synchronously update the file list with the new summary from the response
+            setUploadedFiles(prevFiles => 
+                prevFiles.map(f => 
+                    f._id === docId ? { ...f, summary: data.summary } : f
+                )
+            );
+            
+            // 2. Set the success message
+            setMessage({ text: 'Summary generated successfully. Ready to view.', type: 'success' });
+            // The panel is already expanded via setExpandedDocId(docId) above
 
         } catch (error) {
             setMessage({ text: `Summary Error: ${error.message}`, type: 'error' });
+            console.error('Summary Generation Error:', error);
+            setExpandedDocId(null); // Hide panel on error
         } finally {
             setIsSummaryLoading(false);
-            fetchDocuments(); // Refresh to display new summary
+            // OPTIONAL: Call fetchDocuments() here just to clean up state
+            // but the primary data update relies on the manual state change above.
         }
     };
+// ... (rest of MyNotes.jsx remains the same)
 
-    // 4. DELETE: Handle document deletion
+    // 4. DELETE: Handle document deletion (WITH FIX)
     const handleDeleteDocument = async () => {
         if (!deleteModal || !deleteModal.id) return;
 
@@ -221,7 +242,7 @@ const MyNotes = () => {
             });
             
             if (!response.ok) {
-                 const errorData = await response.json(); // Read error message from server
+                 const errorData = await response.json(); 
                  throw new Error(errorData.message || 'Deletion failed on the server.');
             }
 
@@ -250,8 +271,8 @@ const MyNotes = () => {
 
             <div className="notes-list card">
                 <h4>Uploaded Documents</h4>
-                {/* ... (Rest of component rendering remains the same) ... */}
-                
+                {loading && <p className="loading-state">Loading documents...</p>}
+
                 {/* --- DOCUMENT LIST RENDERING --- */}
                 {!loading && uploadedFiles.length > 0 ? (
                     <ul className="doc-list-details">
@@ -286,6 +307,7 @@ const MyNotes = () => {
                                 {expandedDocId === file._id && (
                                     <li className="summary-detail-row">
                                         <div className="summary-content-wrapper">
+                                            {/* Render actual content or loading state */}
                                             {isSummaryLoading && file._id === expandedDocId ? (
                                                 <p>Generating summary...</p>
                                             ) : file.summary ? (
@@ -293,7 +315,7 @@ const MyNotes = () => {
                                                     dangerouslySetInnerHTML={{ __html: markdownToHtml(file.summary) }} 
                                                 />
                                             ) : (
-                                                 <p>Summary is being generated. Please wait and refresh.</p>
+                                                 <p>Summary is not yet available or generation failed. Try again.</p>
                                             )}
                                         </div>
                                     </li>

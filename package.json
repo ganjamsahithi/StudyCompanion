@@ -5,10 +5,13 @@
   "description": "Agent Compass is an AI-powered academic assistant designed to help college students manage their studies more effectively. This agent goes beyond a regular chatbot by acting as a proactive companion, helping you manage notes, track assignments, and receive personalized study recommendations.",
   "main": "index.js",
   "dependencies": {
+    "@google/genai": "^1.22.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "mammoth": "^1.11.0",
+    "pdf-parse": "^2.2.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-scripts": "5.0.1",

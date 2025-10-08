@@ -1,0 +1,5 @@
+# Install the Google GenAI SDK (assuming you are using JavaScript/Node.js)
+npm install @google/genai
+
+# Install file processing libraries
+npm install mammoth pdf-parse
