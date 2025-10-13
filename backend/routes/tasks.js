@@ -1,53 +1,63 @@
+// backend/routes/tasks.js
 const router = require('express').Router();
 let Task = require('../models/task.model');
 
-// GET all tasks
+// GET all tasks (currently used by Tasks.jsx)
 router.route('/').get((req, res) => {
-    // Fetches all tasks, sorted by due date
-    Task.find()
-        .sort('dueDate') 
-        .then(tasks => res.json(tasks))
-        .catch(err => res.status(400).json('Error: ' + err));
+  Task.find()
+    .then(tasks => res.json(tasks))
+    .catch(err => res.status(400).json('Error: ' + err));
 });
 
 // POST a new task
 router.route('/add').post((req, res) => {
-    const { taskName, courseName, taskType, dueDate, completed } = req.body;
-    
-    // Validate required fields
-    if (!taskName || !courseName || !taskType || !dueDate) {
-        return res.status(400).json('Error: Missing required task fields.');
-    }
+  const { taskName, courseName, taskType, dueDate } = req.body;
+  const isCompleted = req.body.isCompleted || false;
 
-    const newTask = new Task({ 
-        taskName, 
-        courseName, 
-        taskType, 
-        dueDate: new Date(dueDate), // Ensure dueDate is saved as a Date object
-        completed: completed || false
-    });
+  const newTask = new Task({ taskName, courseName, taskType, dueDate, isCompleted });
 
-    newTask.save()
-        .then(savedTask => res.json(savedTask)) // Return the saved task object
-        .catch(err => res.status(400).json('Error adding task: ' + err));
+  newTask.save()
+    .then(() => res.json('Task added!'))
+    .catch(err => res.status(400).json('Error: ' + err));
 });
 
-// POST /tasks/update/:id - Toggle completion status
+// POST /tasks/update/:id - Update task completion status
 router.route('/update/:id').post((req, res) => {
-    Task.findById(req.params.id)
-        .then(task => {
-            if (!task) {
-                return res.status(404).json('Task not found.');
-            }
-            
-            // Toggle the completion status based on the new status provided in the body
-            task.completed = req.body.completed;
+    Task.findByIdAndUpdate(req.params.id, { isCompleted: req.body.isCompleted })
+        .then(() => res.json('Task updated!'))
+        .catch(err => res.status(400).json('Error: ' + err));
+});
 
-            task.save()
-                .then(() => res.json('Task updated successfully!'))
-                .catch(err => res.status(400).json('Error updating task: ' + err));
-        })
-        .catch(err => res.status(400).json('Error finding task: ' + err));
+// GET /tasks/metrics - Helper route for dashboard metrics
+router.route('/metrics').get(async (req, res) => {
+    try {
+        const totalTasks = await Task.countDocuments();
+        const completedTasks = await Task.countDocuments({ isCompleted: true });
+
+        // Calculate high-priority deadlines (due within the next 3 days)
+        const today = new Date();
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(today.getDate() + 3);
+
+        const priorityDeadlines = await Task.find({
+            isCompleted: false,
+            dueDate: { $gte: today, $lte: threeDaysFromNow }
+        }).sort({ dueDate: 1 }); // Sort by closest deadline
+
+        res.json({
+            totalTasks,
+            completedTasks,
+            priorityDeadlines: priorityDeadlines.map(d => ({
+                id: d._id,
+                taskName: d.taskName,
+                courseName: d.courseName,
+                dueDate: d.dueDate,
+            }))
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard metrics:', error);
+        res.status(500).json('Error fetching metrics.');
+    }
 });
 
 module.exports = router;

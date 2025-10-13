@@ -5,6 +5,7 @@ const ExamPredictor = () => {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [examData, setExamData] = useState(null);
   const [activeTab, setActiveTab] = useState('predictions');
+  
 
   // Mock data - will be replaced with API calls
   const courses = [

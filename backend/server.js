@@ -19,16 +19,18 @@ mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
 
 // --- Route Imports ---
 const tasksRouter = require('./routes/tasks');
-const documentsRouter = require('./routes/documents'); 
-const chatRouter = require('./routes/chat');         
+const documentsRouter = require('./routes/documents');
+const chatRouter = require('./routes/chat');
+const dashboardRouter = require('./routes/dashboard'); // NEW Import
 
-// Load Chat Thread model to ensure it's defined before routing
+// Load Mongoose models (ensures models are defined)
 require('./models/chatThread.model'); 
 
 // --- Route Usage ---
 app.use('/tasks', tasksRouter);
-app.use('/documents', documentsRouter); 
-app.use('/chat', chatRouter);         
+app.use('/documents', documentsRouter);
+app.use('/chat', chatRouter);
+app.use('/dashboard', dashboardRouter); // NEW Route
 
 // Define a default route
 app.get('/', (req, res) => {
