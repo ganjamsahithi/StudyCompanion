@@ -2,11 +2,40 @@
 const router = require('express').Router();
 let Task = require('../models/task.model');
 
-// GET all tasks (currently used by Tasks.jsx)
+// --- Task & Exam Routes (Includes DELETE, ADD, and GET) ---
+
+// DELETE /tasks/:id - Permanently deletes a task (Used by the Study Schedule checkboxes)
+router.route('/:id').delete(async (req, res) => {
+    try {
+        const result = await Task.findByIdAndDelete(req.params.id);
+        if (!result) {
+            return res.status(404).json({ message: 'Task not found.' });
+        }
+        res.json({ message: 'Task deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        res.status(500).json({ message: 'Failed to delete task.' });
+    }
+});
+
+// GET /tasks/ - List all tasks (used by Tasks.jsx)
 router.route('/').get((req, res) => {
   Task.find()
+    .sort({ dueDate: 1 })
     .then(tasks => res.json(tasks))
     .catch(err => res.status(400).json('Error: ' + err));
+});
+
+// GET /tasks/exams - Fetches only exam tasks for the Exam Predictor
+router.route('/exams').get(async (req, res) => {
+    try {
+        const exams = await Task.find({ taskType: 'Exam' })
+            .sort({ dueDate: 1 });
+        res.json(exams);
+    } catch (error) {
+        console.error('Error fetching exams:', error);
+        res.status(500).json({ message: 'Failed to fetch exam tasks.' });
+    }
 });
 
 // POST a new task
@@ -34,7 +63,6 @@ router.route('/metrics').get(async (req, res) => {
         const totalTasks = await Task.countDocuments();
         const completedTasks = await Task.countDocuments({ isCompleted: true });
 
-        // Calculate high-priority deadlines (due within the next 3 days)
         const today = new Date();
         const threeDaysFromNow = new Date();
         threeDaysFromNow.setDate(today.getDate() + 3);
@@ -42,7 +70,7 @@ router.route('/metrics').get(async (req, res) => {
         const priorityDeadlines = await Task.find({
             isCompleted: false,
             dueDate: { $gte: today, $lte: threeDaysFromNow }
-        }).sort({ dueDate: 1 }); // Sort by closest deadline
+        }).sort({ dueDate: 1 });
 
         res.json({
             totalTasks,
@@ -59,5 +87,23 @@ router.route('/metrics').get(async (req, res) => {
         res.status(500).json('Error fetching metrics.');
     }
 });
+
+// GET /tasks/courses - Unique courses for Exam Predictor dropdown
+router.route('/courses').get(async (req, res) => {
+    try {
+        const courses = await Task.distinct('courseName');
+        const courseObjects = courses
+            .filter(name => name && name.trim().length > 0)
+            .map((name, index) => ({ 
+                id: name,
+                name: name 
+            }));
+        res.json(courseObjects);
+    } catch (error) {
+        console.error('Error fetching courses:', error);
+        res.status(500).json('Error fetching courses.');
+    }
+});
+
 
 module.exports = router;

@@ -1,3 +1,8 @@
+
+
+// ... (rest of the file is the same)
+
+
 // backend/routes/chat.js
 const router = require('express').Router();
 const { GoogleGenAI } = require('@google/genai');
@@ -48,13 +53,11 @@ router.route('/send').post(async (req, res) => {
     let thread;
     let newThreadCreated = false;
 
-
     if (!message) {
         return res.status(400).json({ message: 'Message content is required.' });
     }
 
     try {
-
         // 1. Load or Create Thread
         if (threadId) {
             thread = await ChatThread.findById(threadId);
@@ -83,11 +86,9 @@ router.route('/send').post(async (req, res) => {
             model: 'gemini-2.5-flash',
             contents: contents,
             config: { systemInstruction: { parts: [{ text: systemInstruction }] } }
-
         });
 
         const agentResponse = response.text;
-
 
         // 4. Add Agent Response and Save Thread
         thread.messages.push({ sender: 'model', text: agentResponse });
@@ -106,7 +107,6 @@ router.route('/send').post(async (req, res) => {
             newThread: newThreadCreated,
             updatedTitle: thread.title 
         });
-
 
     } catch (error) {
         console.error('Gemini Chat Error:', error);

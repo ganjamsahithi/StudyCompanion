@@ -145,3 +145,54 @@ h4 {
     color: #008000;
     border: 1px solid #ccffcc;
 }
+/* --- Custom Delete Confirmation Modal (Append to existing Tasks.css) --- */
+.delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1500;
+}
+
+.delete-modal {
+    background: white;
+    border-radius: 10px;
+    width: 350px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.delete-modal h4 {
+    color: #dc3545;
+    margin-bottom: 15px;
+}
+
+.delete-modal p {
+    margin-bottom: 25px;
+}
+
+.delete-modal-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 10px;
+    transition: background-color 0.2s;
+}
+
+.delete-modal-actions .cancel-btn {
+    background-color: #ccc;
+    color: #333;
+}
+
+.delete-modal-actions .confirm-btn {
+    background-color: #dc3545;
+    color: white;
+}
