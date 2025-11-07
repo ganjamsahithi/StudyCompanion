@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './ExamPredictor.css';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:8000';
 
 // Helper to format date display consistently (DD/MM/YYYY hh:mm AM/PM)
 const formatDateDisplay = (dateString) => {
@@ -36,6 +36,11 @@ const ExamPredictor = () => {
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
     const [exportMessage, setExportMessage] = useState('');
+    
+    // New state variables for syllabus functionality
+    const [selectedTopic, setSelectedTopic] = useState(null);
+    const [topicSyllabus, setTopicSyllabus] = useState(null);
+    const [loadingSyllabus, setLoadingSyllabus] = useState(false);
 
     const fetchUpcomingExams = useCallback(async () => {
         try {
@@ -71,6 +76,8 @@ const ExamPredictor = () => {
         setError('');
         setExamPrediction(null);
         setExportMessage('');
+        setSelectedTopic(null);
+        setTopicSyllabus(null);
 
         try {
             const response = await fetch(
@@ -92,6 +99,37 @@ const ExamPredictor = () => {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // New function to fetch syllabus for a selected topic
+    const fetchTopicSyllabus = async (topic) => {
+        setSelectedTopic(topic);
+        setLoadingSyllabus(true);
+        setTopicSyllabus(null);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/exam/topic-syllabus`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    courseName: selectedExam.courseName,
+                    topicName: topic.topic,
+                    topicDescription: topic.description
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate syllabus');
+            }
+
+            const data = await response.json();
+            setTopicSyllabus(data);
+        } catch (err) {
+            console.error('Syllabus generation error:', err);
+            setError('Failed to generate syllabus for this topic');
+        } finally {
+            setLoadingSyllabus(false);
         }
     };
 
@@ -356,24 +394,123 @@ const ExamPredictor = () => {
                             <div className="topics-content">
                                 <h4>📖 Important Topics for Exam</h4>
                                 <p className="content-description">
-                                    Based on AI analysis of your uploaded notes and course materials
+                                    Based on AI analysis of your uploaded notes and course materials. Click on any topic to view detailed syllabus.
                                 </p>
                                 {examPrediction.topicsLikely && examPrediction.topicsLikely.length > 0 ? (
-                                    <div className="topics-grid">
-                                        {examPrediction.topicsLikely.map((topic, idx) => (
-                                            <div key={idx} className="topic-box">
-                                                <div className="topic-box-header">
-                                                    <span className="topic-index">{idx + 1}</span>
-                                                    <h5>{topic.topic}</h5>
-                                                    <span className={`priority-tag ${(topic.importance || 'Medium').toLowerCase()}`}>
-                                                        {topic.importance || 'Medium'}
-                                                    </span>
+                                    <>
+                                        <div className="topics-grid">
+                                            {examPrediction.topicsLikely.map((topic, idx) => (
+                                                <div 
+                                                    key={idx} 
+                                                    className={`topic-box ${selectedTopic?.topic === topic.topic ? 'selected-topic' : ''}`}
+                                                    onClick={() => fetchTopicSyllabus(topic)}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    <div className="topic-box-header">
+                                                        <span className="topic-index">{idx + 1}</span>
+                                                        <h5>{topic.topic}</h5>
+                                                        <span className={`priority-tag ${(topic.importance || 'Medium').toLowerCase()}`}>
+                                                            {topic.importance || 'Medium'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="topic-desc">{topic.description}</p>
+                                                    <div className="topic-time">Last Appeared: {topic.lastAppeared}</div>
                                                 </div>
-                                                <p className="topic-desc">{topic.description}</p>
-                                                <div className="topic-time">Last Appeared: {topic.lastAppeared}</div>
+                                            ))}
+                                        </div>
+
+                                        {/* Syllabus Display Section */}
+                                        {loadingSyllabus && (
+                                            <div className="syllabus-loading">
+                                                <div className="loading-spinner"></div>
+                                                <p>Generating detailed syllabus for <strong>{selectedTopic?.topic}</strong>...</p>
                                             </div>
-                                        ))}
-                                    </div>
+                                        )}
+
+                                        {!loadingSyllabus && topicSyllabus && selectedTopic && (
+                                            <div className="topic-syllabus-container">
+                                                <div className="syllabus-header">
+                                                    <h3>📚 Detailed Syllabus: {selectedTopic.topic}</h3>
+                                                    <button 
+                                                        className="close-syllabus-btn"
+                                                        onClick={() => {
+                                                            setSelectedTopic(null);
+                                                            setTopicSyllabus(null);
+                                                        }}
+                                                    >
+                                                        ✕ Close
+                                                    </button>
+                                                </div>
+
+                                                <div className="syllabus-content">
+                                                    {/* Overview Section */}
+                                                    {topicSyllabus.overview && (
+                                                        <div className="syllabus-section">
+                                                            <h4>📋 Overview</h4>
+                                                            <p>{topicSyllabus.overview}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Subtopics Section */}
+                                                    {topicSyllabus.subtopics && topicSyllabus.subtopics.length > 0 && (
+                                                        <div className="syllabus-section">
+                                                            <h4>📑 Key Subtopics</h4>
+                                                            <div className="subtopics-list">
+                                                                {topicSyllabus.subtopics.map((subtopic, idx) => (
+                                                                    <div key={idx} className="subtopic-item">
+                                                                        <div className="subtopic-header">
+                                                                            <span className="subtopic-number">{idx + 1}.</span>
+                                                                            <h5>{subtopic.name}</h5>
+                                                                        </div>
+                                                                        <p className="subtopic-description">{subtopic.description}</p>
+                                                                        {subtopic.keyPoints && subtopic.keyPoints.length > 0 && (
+                                                                            <ul className="key-points">
+                                                                                {subtopic.keyPoints.map((point, pIdx) => (
+                                                                                    <li key={pIdx}>{point}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Learning Objectives */}
+                                                    {topicSyllabus.learningObjectives && topicSyllabus.learningObjectives.length > 0 && (
+                                                        <div className="syllabus-section">
+                                                            <h4>🎯 Learning Objectives</h4>
+                                                            <ul className="objectives-list">
+                                                                {topicSyllabus.learningObjectives.map((objective, idx) => (
+                                                                    <li key={idx}>{objective}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Study Tips */}
+                                                    {topicSyllabus.studyTips && topicSyllabus.studyTips.length > 0 && (
+                                                        <div className="syllabus-section study-tips">
+                                                            <h4>💡 Study Tips</h4>
+                                                            <ul className="tips-list">
+                                                                {topicSyllabus.studyTips.map((tip, idx) => (
+                                                                    <li key={idx}>{tip}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Estimated Study Time */}
+                                                    {topicSyllabus.estimatedStudyTime && (
+                                                        <div className="syllabus-section study-time">
+                                                            <h4>⏱️ Estimated Study Time</h4>
+                                                            <p className="time-estimate">{topicSyllabus.estimatedStudyTime}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
                                     <div className="empty-content">
                                         <p>No topics identified. Upload more notes for better predictions.</p>
@@ -449,15 +586,6 @@ const ExamPredictor = () => {
                                                             <input 
                                                                 type="checkbox" 
                                                                 id={`pt-${idx}-${tIdx}`} 
-                                                                // The task being added here needs an ID to be deleted.
-                                                                // Since these tasks are generated, we use the _id from the tasks saved in the database
-                                                                // In the current setup, we assume these tasks have been exported to the Tasks list,
-                                                                // but for the UI to delete them, we need a unique ID linked to the DB.
-                                                                // To simplify for now, we'll use a placeholder ID, but the actual implementation
-                                                                // relies on linking the task._id from the Tasks database entry.
-                                                                // Since this current schedule is loaded from the AI report, not the DB, the delete
-                                                                // action should happen on the item's unique ID.
-                                                                // We will assume the task object has a unique ID for deletion here.
                                                                 onChange={() => handleTaskCompletion(task.taskId || task.task, task.task)}
                                                             />
                                                             <label htmlFor={`pt-${idx}-${tIdx}`}>

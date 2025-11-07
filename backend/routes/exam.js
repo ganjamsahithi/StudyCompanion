@@ -1,10 +1,9 @@
-// backend/routes/exam.js
-// backend/routes/exam.js (MODIFIED)
+// backend/routes/exam.js (COMPLETE UPDATED VERSION)
 const router = require('express').Router();
 const Task = require('../models/task.model'); // Global tasks model
 const Document = require('../models/document.model');
-const StudyScheduleTask = require('../models/StudyScheduleTask.model'); // NEW
-const QuizResult = require('../models/QuizResult.model'); // NEW
+const StudyScheduleTask = require('../models/StudyScheduleTask.model');
+const QuizResult = require('../models/QuizResult.model');
 const aiService = require('../services/ai.exam.service');
 
 // GET /exam/predict/:courseName - Generates the full prediction report
@@ -36,7 +35,7 @@ router.route('/predict/:courseName').get(async (req, res) => {
 
 // POST /exam/export-roadmap - Exports AI schedule to the DEDICATED study schedule DB
 router.route('/export-roadmap').post(async (req, res) => {
-    const { roadmap, courseName, examId } = req.body; // Expect examId now
+    const { roadmap, courseName, examId } = req.body;
     if (!roadmap || !courseName || !examId) {
         return res.status(400).json({ message: "Roadmap data, course name, and exam ID are required." });
     }
@@ -44,24 +43,20 @@ router.route('/export-roadmap').post(async (req, res) => {
     try {
         const tasksToSave = roadmap.phases.flatMap(phase => 
             phase.tasks.map((task, index) => {
-                // Simplified date assignment: 1 task per day
                 const currentDate = new Date(phase.startDate);
                 currentDate.setDate(currentDate.getDate() + index); 
                 
                 return {
                     taskName: `${phase.phase} | ${task.task}`,
                     courseName: courseName,
-                    examId: examId, // Link to the main exam task
+                    examId: examId,
                     dueDate: currentDate,
                     isCompleted: false
                 };
             })
         );
         
-        // Clear existing schedule tasks for this exam before saving the new one
         await StudyScheduleTask.deleteMany({ examId: examId }); 
-        
-        // Use the dedicated StudyScheduleTask model
         await StudyScheduleTask.insertMany(tasksToSave); 
         
         res.json({ message: `Successfully saved ${tasksToSave.length} tasks to your dedicated Study Schedule.` });
@@ -131,7 +126,6 @@ router.route('/generate-quiz').post(async (req, res) => {
     }
 
     try {
-        // Fetch course documents for context
         const documents = await Document.find({ 
             fileName: { $regex: new RegExp(courseName, 'i') } 
         }).select('fileName summary').limit(5);
@@ -140,7 +134,6 @@ router.route('/generate-quiz').post(async (req, res) => {
             ? documents.map(d => `${d.fileName}: ${d.summary || 'No summary'}`).join('\n')
             : `General knowledge about ${courseName}`;
 
-        // Generate quiz using AI
         const quiz = await aiService.generateQuiz(
             courseName, 
             difficulty, 
@@ -164,7 +157,6 @@ router.route('/topic-notes/:courseName/:topicName').get(async (req, res) => {
     const { courseName, topicName } = req.params;
 
     try {
-        // Fetch relevant documents
         const documents = await Document.find({ 
             fileName: { $regex: new RegExp(courseName, 'i') } 
         }).select('fileName summary content').limit(3);
@@ -173,7 +165,6 @@ router.route('/topic-notes/:courseName/:topicName').get(async (req, res) => {
             ? documents.map(d => `${d.fileName}: ${d.summary || d.content || 'No content'}`).join('\n\n')
             : `Generate content based on general knowledge of ${courseName}`;
 
-        // Generate detailed notes using AI
         const detailedNotes = await aiService.generateTopicNotes(
             courseName,
             topicName,
@@ -190,5 +181,30 @@ router.route('/topic-notes/:courseName/:topicName').get(async (req, res) => {
     }
 });
 
+// ============= NEW ENDPOINT FOR TOPIC SYLLABUS =============
+// POST /exam/topic-syllabus - Generates detailed syllabus for a specific topic
+router.route('/topic-syllabus').post(async (req, res) => {
+    try {
+        const { courseName, topicName, topicDescription } = req.body;
+
+        if (!courseName || !topicName) {
+            return res.status(400).json({ 
+                message: 'courseName and topicName are required' 
+            });
+        }
+
+        // Generate syllabus using AI service
+        const syllabus = await aiService.generateTopicSyllabus(courseName, topicName, topicDescription);
+
+        res.status(200).json(syllabus);
+    } catch (error) {
+        console.error('Topic Syllabus Generation Error:', error);
+        res.status(500).json({ 
+            message: 'Failed to generate topic syllabus',
+            error: error.message 
+        });
+    }
+});
+// ============= END OF NEW ENDPOINT =============
 
 module.exports = router;

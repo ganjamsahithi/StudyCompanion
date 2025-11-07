@@ -1,13 +1,12 @@
-// backend/services/ai.exam.service.js
+// backend/services/ai.exam.service.js (COMPLETE UPDATED VERSION)
 const { GoogleGenAI } = require('@google/genai');
 
 // Initialize the Gemini AI client
 const ai = new GoogleGenAI({}); 
 
-// Define the schema used by the Exam Predictor frontend (schema omitted for brevity, assumed correct)
+// Define the schema used by the Exam Predictor frontend
 const EXAM_DATA_SCHEMA = {
     type: "OBJECT",
-    // ... (rest of the detailed schema properties for topicsLikely, practiceQuestions, etc.)
     properties: {
         examDate: { type: "STRING", description: "Predicted or scheduled exam date in YYYY-MM-DD format." },
         topicsLikely: {
@@ -19,7 +18,8 @@ const EXAM_DATA_SCHEMA = {
                     topic: { type: "STRING" },
                     probability: { type: "NUMBER" },
                     importance: { type: "STRING", enum: ["Critical", "High", "Medium"] },
-                    lastAppeared: { type: "STRING" }
+                    lastAppeared: { type: "STRING" },
+                    description: { type: "STRING" }
                 },
                 required: ["topic", "probability", "importance"]
             }
@@ -85,17 +85,73 @@ const EXAM_DATA_SCHEMA = {
                 }
             },
             required: ["daysUntilExam", "totalStudyHours", "recommendedDailyHours", "phases"]
-        }
+        },
+        studyTip: { type: "STRING", description: "A personalized study recommendation" },
+        weakAreas: {
+            type: "ARRAY",
+            description: "Areas that need more focus",
+            items: { type: "STRING" }
+        },
+        documentsAnalyzed: { type: "NUMBER", description: "Number of documents analyzed" }
     },
     required: ["examDate", "topicsLikely", "professorEmphasis", "practiceQuestions", "revisionRoadmap"]
 };
+
+// ============= NEW SCHEMA FOR TOPIC SYLLABUS =============
+const TOPIC_SYLLABUS_SCHEMA = {
+    type: "OBJECT",
+    properties: {
+        overview: {
+            type: "STRING",
+            description: "A comprehensive 2-3 sentence overview of the topic"
+        },
+        subtopics: {
+            type: "ARRAY",
+            description: "List of 4-8 key subtopics that students should master",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    name: { 
+                        type: "STRING",
+                        description: "Name of the subtopic" 
+                    },
+                    description: { 
+                        type: "STRING",
+                        description: "Brief explanation of what this subtopic covers" 
+                    },
+                    keyPoints: {
+                        type: "ARRAY",
+                        description: "3-5 essential points or concepts within this subtopic",
+                        items: { type: "STRING" }
+                    }
+                },
+                required: ["name", "description", "keyPoints"]
+            }
+        },
+        learningObjectives: {
+            type: "ARRAY",
+            description: "5-7 specific learning objectives students should achieve",
+            items: { type: "STRING" }
+        },
+        studyTips: {
+            type: "ARRAY",
+            description: "4-6 practical study tips specific to this topic",
+            items: { type: "STRING" }
+        },
+        estimatedStudyTime: {
+            type: "STRING",
+            description: "Estimated time needed to master this topic (e.g., '8-10 hours')"
+        }
+    },
+    required: ["overview", "subtopics", "learningObjectives", "studyTips", "estimatedStudyTime"]
+};
+// ============= END OF NEW SCHEMA =============
 
 
 /**
  * Generates a full exam prediction report using the Gemini API.
  */
 async function generateExamPrediction(courseName, courseData) {
-    // FIX: Explicitly tells AI to use general knowledge if notes are missing and forbids irrelevant content.
     const systemPrompt = `You are an expert academic data scientist and predictor. Your job is to analyze the provided student data and course name (${courseName}). If specific notes or tasks are missing, you must use your general knowledge about ${courseName} to generate a hyper-realistic, structured exam preparation report in the exact JSON format specified. Do NOT generate content for irrelevant subjects. **Your generated content MUST match the subject provided in courseName (e.g., if it is 'Aptitude', do NOT output 'Data Structures').**`;
 
     const tasksSummary = courseData.tasks.length > 0
@@ -135,6 +191,60 @@ async function generateExamPrediction(courseName, courseData) {
     }
 }
 
+// ============= NEW FUNCTION FOR TOPIC SYLLABUS =============
+/**
+ * Generates detailed syllabus for a specific topic using Gemini AI
+ */
+async function generateTopicSyllabus(courseName, topicName, topicDescription) {
+    const systemPrompt = `You are an expert academic curriculum designer and educator specializing in ${courseName}. 
+Your task is to create a comprehensive, detailed syllabus for the topic "${topicName}" that would help students 
+prepare for an exam. The syllabus should be structured, practical, and focused on exam preparation. 
+Use your extensive knowledge of ${courseName} to provide accurate and relevant information.`;
+
+    const userPrompt = `Create a detailed syllabus for the following topic in ${courseName}:
+
+Topic: ${topicName}
+${topicDescription ? `Description: ${topicDescription}` : ''}
+
+Please provide:
+1. A comprehensive overview of this topic
+2. All major subtopics with detailed explanations and key concepts
+3. Specific learning objectives that students should achieve
+4. Practical study tips tailored to this topic
+5. An estimated study time for mastering this topic
+
+Make the content exam-focused, practical, and comprehensive. Include real-world applications where relevant.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: userPrompt }] }],
+            config: {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                responseMimeType: "application/json",
+                responseSchema: TOPIC_SYLLABUS_SCHEMA,
+                temperature: 0.7,
+            }
+        });
+
+        const jsonString = response.text.trim();
+        const syllabus = JSON.parse(jsonString);
+
+        // Add metadata
+        syllabus.topicName = topicName;
+        syllabus.courseName = courseName;
+        syllabus.generatedAt = new Date().toISOString();
+
+        return syllabus;
+
+    } catch (error) {
+        console.error('Gemini Topic Syllabus Generation Failed:', error);
+        throw new Error('Failed to generate topic syllabus. Please try again.');
+    }
+}
+// ============= END OF NEW FUNCTION =============
+
 module.exports = {
     generateExamPrediction,
+    generateTopicSyllabus,  // NEW EXPORT - ADDED THIS
 };

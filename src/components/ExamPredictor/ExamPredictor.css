@@ -763,3 +763,295 @@
     border-radius: 8px;
     font-weight: 500;
 }
+/* Add these styles to your ExamPredictor.css file */
+
+/* Selected Topic Highlight */
+.topic-box.selected-topic {
+    border: 2px solid #4a90e2;
+    background: linear-gradient(135deg, #667eea15, #764ba215);
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(74, 144, 226, 0.3);
+}
+
+.topic-box {
+    transition: all 0.3s ease;
+}
+
+.topic-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Syllabus Loading State */
+.syllabus-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    margin-top: 30px;
+    background: linear-gradient(135deg, #667eea10, #764ba210);
+    border-radius: 12px;
+    border: 2px dashed #667eea;
+}
+
+.syllabus-loading .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+.syllabus-loading p {
+    color: #555;
+    font-size: 16px;
+}
+
+/* Topic Syllabus Container */
+.topic-syllabus-container {
+    margin-top: 30px;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e3e8ef;
+    animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.syllabus-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #667eea;
+    margin-bottom: 25px;
+}
+
+.syllabus-header h3 {
+    color: #2d3748;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.close-syllabus-btn {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.close-syllabus-btn:hover {
+    background: #c53030;
+    transform: scale(1.05);
+}
+
+/* Syllabus Content Sections */
+.syllabus-content {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.syllabus-section {
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #667eea;
+}
+
+.syllabus-section h4 {
+    color: #2d3748;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.syllabus-section p {
+    color: #4a5568;
+    line-height: 1.7;
+    margin: 0;
+}
+
+/* Subtopics List */
+.subtopics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.subtopic-item {
+    background: white;
+    padding: 18px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.subtopic-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.subtopic-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.subtopic-number {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.subtopic-header h5 {
+    color: #2d3748;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.subtopic-description {
+    color: #4a5568;
+    line-height: 1.6;
+    margin: 10px 0;
+}
+
+/* Key Points */
+.key-points {
+    margin: 15px 0 0 0;
+    padding-left: 20px;
+    list-style: none;
+}
+
+.key-points li {
+    color: #4a5568;
+    line-height: 1.7;
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.key-points li::before {
+    content: "▸";
+    color: #667eea;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
+/* Learning Objectives */
+.objectives-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style: none;
+}
+
+.objectives-list li {
+    color: #4a5568;
+    line-height: 1.8;
+    margin-bottom: 12px;
+    position: relative;
+    padding-left: 25px;
+}
+
+.objectives-list li::before {
+    content: "✓";
+    color: #48bb78;
+    font-weight: bold;
+    font-size: 18px;
+    position: absolute;
+    left: 0;
+}
+
+/* Study Tips Section */
+.syllabus-section.study-tips {
+    background: linear-gradient(135deg, #fef5e710, #f6e05e10);
+    border-left-color: #d69e2e;
+}
+
+.tips-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style: none;
+}
+
+.tips-list li {
+    color: #744210;
+    line-height: 1.8;
+    margin-bottom: 12px;
+    position: relative;
+    padding-left: 25px;
+}
+
+.tips-list li::before {
+    content: "💡";
+    position: absolute;
+    left: 0;
+}
+
+/* Study Time Section */
+.syllabus-section.study-time {
+    background: linear-gradient(135deg, #e6fffa10, #81e6d910);
+    border-left-color: #319795;
+}
+
+.time-estimate {
+    color: #234e52;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .topic-syllabus-container {
+        padding: 20px;
+    }
+
+    .syllabus-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .syllabus-header h3 {
+        font-size: 20px;
+    }
+
+    .close-syllabus-btn {
+        width: 100%;
+    }
+}
