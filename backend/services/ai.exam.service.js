@@ -1,4 +1,3 @@
-// backend/services/ai.exam.service.js (COMPLETE UPDATED VERSION)
 const { GoogleGenAI } = require('@google/genai');
 
 // Initialize the Gemini AI client
@@ -244,7 +243,150 @@ Make the content exam-focused, practical, and comprehensive. Include real-world 
 }
 // ============= END OF NEW FUNCTION =============
 
+// Add this function to your backend/services/ai.exam.service.js file
+
+const QUIZ_SCHEMA = {
+    type: "OBJECT",
+    properties: {
+        title: {
+            type: "STRING",
+            description: "Title of the quiz"
+        },
+        quizType: {
+            type: "STRING",
+            enum: ["Easy", "Medium", "Hard", "Mixed"],
+            description: "Difficulty level of the quiz"
+        },
+        questions: {
+            type: "ARRAY",
+            description: "Array of 11 questions (10 MCQs + 1 typing question)",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    id: { type: "NUMBER" },
+                    text: { type: "STRING", description: "Question text" },
+                    type: { type: "STRING", enum: ["MCQ", "ShortAnswer"] },
+                    options: {
+                        type: "ARRAY",
+                        items: { type: "STRING" },
+                        description: "4 options for MCQ, empty for ShortAnswer"
+                    },
+                    answer: { type: "STRING", description: "Correct answer" },
+                    topic: { type: "STRING", description: "Related topic" },
+                    difficulty: { type: "STRING", enum: ["Easy", "Medium", "Hard"] }
+                },
+                required: ["id", "text", "type", "answer", "topic", "difficulty"]
+            }
+        }
+    },
+    required: ["title", "quizType", "questions"]
+};
+
+/**
+ * Generates a quiz with 10 MCQs + 1 typing question
+ * @param {string} courseName - Name of the course
+ * @param {string} difficulty - Easy, Medium, Hard, or Mixed
+ * @param {number} questionCount - Number of MCQs (default 10)
+ * @param {boolean} includeTypingQuestion - Whether to include a typing question
+ * @param {string} documentContext - Context from uploaded documents
+ */
+async function generateQuiz(courseName, difficulty, questionCount = 10, includeTypingQuestion = true, documentContext = '') {
+    const systemPrompt = `You are an expert quiz creator for ${courseName}. 
+Create exactly ${questionCount} multiple-choice questions (MCQs) and ${includeTypingQuestion ? '1 short answer (typing) question' : '0 typing questions'}.\n\nRequirements:\n- Each MCQ must have EXACTLY 4 distinct options labeled A, B, C, D\n- Questions must be relevant to ${courseName}\n- Difficulty level: ${difficulty}\n- All questions must have ONE correct answer\n- The typing question should test comprehensive understanding\n- Use the provided document context if available, otherwise use general knowledge about ${courseName}\n\nFormat requirements:\n- MCQ questions: type = "MCQ", options = array of 4 strings\n- Typing question: type = "ShortAnswer", options = empty array\n- Correct answer must be provided for all questions`;
+
+    const userPrompt = `Generate a ${difficulty} quiz for ${courseName} with ${questionCount} MCQs and ${includeTypingQuestion ? '1' : '0'} typing question(s).\n\n${documentContext ? `Use this course content as reference:\n${documentContext.substring(0, 2000)}` : `Base questions on general knowledge of ${courseName}`}\n\nEnsure questions test:\n- Fundamental concepts\n- Practical applications  \n- Problem-solving abilities\n- Comprehension and analysis\n\nThe quiz should be comprehensive and suitable for exam preparation.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: userPrompt }] }],
+            config: {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                responseMimeType: "application/json",
+                responseSchema: QUIZ_SCHEMA,
+                temperature: 0.7,
+            }
+        });
+
+        const jsonString = response.text.trim();
+        const quizData = JSON.parse(jsonString);
+
+        // Validate and format questions
+        quizData.questions = quizData.questions.map((q, index) => {
+            q.id = index + 1;
+            
+            // Ensure MCQ has 4 options
+            if (q.type === 'MCQ' && (!q.options || q.options.length !== 4)) {
+                q.options = ['Option A', 'Option B', 'Option C', 'Option D'];
+            }
+            
+            // Ensure ShortAnswer has empty options
+            if (q.type === 'ShortAnswer') {
+                q.options = [];
+            }
+            
+            return q;
+        });
+
+        quizData.courseName = courseName;
+        quizData.title = quizData.title || `${courseName} ${difficulty} Quiz`;
+        quizData.quizType = difficulty;
+
+        console.log(`Quiz generated: ${quizData.questions.length} questions`);
+
+        return quizData;
+
+    } catch (error) {
+        console.error('Quiz Generation Failed:', error);
+        
+        // Fallback quiz if AI fails
+        return generateFallbackQuiz(courseName, difficulty, questionCount, includeTypingQuestion);
+    }
+}
+
+/**
+ * Generates a fallback quiz if AI generation fails
+ */
+function generateFallbackQuiz(courseName, difficulty, questionCount, includeTypingQuestion) {
+    const mcqs = [];
+    
+    for (let i = 1; i <= questionCount; i++) {
+        mcqs.push({
+            id: i,
+            text: `Sample MCQ ${i} for ${courseName} (${difficulty} level)`,
+            type: 'MCQ',
+            options: ['Option A', 'Option B', 'Option C', 'Option D'],
+            answer: 'Option A',
+            topic: courseName,
+            difficulty: difficulty
+        });
+    }
+    
+    const questions = [...mcqs];
+    
+    if (includeTypingQuestion) {
+        questions.push({
+            id: questionCount + 1,
+            text: `Explain a key concept in ${courseName} that you've studied recently.`,
+            type: 'ShortAnswer',
+            options: [],
+            answer: 'Student should provide a detailed explanation of the concept.',
+            topic: courseName,
+            difficulty: difficulty
+        });
+    }
+    
+    return {
+        title: `${courseName} ${difficulty} Quiz`,
+        quizType: difficulty,
+        questions: questions,
+        courseName: courseName
+    };
+}
+
+// Export the function
 module.exports = {
     generateExamPrediction,
-    generateTopicSyllabus,  // NEW EXPORT - ADDED THIS
+    generateTopicSyllabus,
+    generateQuiz,  // ADD THIS EXPORT
 };

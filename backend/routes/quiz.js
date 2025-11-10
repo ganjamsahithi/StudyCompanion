@@ -1,24 +1,33 @@
 // backend/routes/quiz.js
 const router = require('express').Router();
-const Quiz = require('../models/quiz.model'); // The new Quiz Model
-const aiQuizService = require('../services/ai.quiz.service'); // Correct import
+const Quiz = require('../models/quiz.model');
+const QuizResult = require('../models/QuizResult.model');
 
-// --- Helper Functions ---
+// Import AI service - make sure the path matches your project structure
+let aiQuizService;
+try {
+    aiQuizService = require('../services/ai.quiz.service');
+} catch (err) {
+    console.error('AI Quiz Service not found. Please ensure ai.quiz.service.js exists in services folder.');
+}
+
+// Helper function to calculate score
 const calculateScore = (quiz, submittedAnswers) => {
     let score = 0;
     const totalQuestions = quiz.questions.length;
     
-    quiz.questions.forEach(q => {
-        const submitted = submittedAnswers[q.id];
+    quiz.questions.forEach((q, index) => {
+        const questionId = index + 1;
+        const submitted = submittedAnswers[questionId];
         
-        // Simple scoring logic: exact match for MCQ/T-F, non-empty for Short Answer
         if (q.type === 'MCQ' || q.type === 'TrueFalse') {
             if (submitted === q.correctAnswer) {
                 score++;
             }
         } else if (q.type === 'ShortAnswer') {
-            if (submitted && submitted.trim().length > 5) {
-                 score++;
+            // For short answer, check if response has substantial content
+            if (submitted && submitted.trim().length >= 10) {
+                score++;
             }
         }
     });
@@ -26,35 +35,55 @@ const calculateScore = (quiz, submittedAnswers) => {
     return { score, totalQuestions };
 };
 
-// --- API Endpoints ---
-
-// POST /quiz/generate - Generates a new quiz and saves it to the database
-router.route('/generate').post(async (req, res) => {
+// POST /quiz/generate - Generate a new quiz
+router.post('/generate', async (req, res) => {
     const { courseName, topics, difficulty } = req.body;
     const userId = 'default_user';
 
     if (!courseName || !topics || topics.length === 0) {
-        return res.status(400).json({ message: 'Course name and topics are required for quiz generation.' });
+        return res.status(400).json({ 
+            message: 'Course name and topics are required for quiz generation.' 
+        });
+    }
+
+    if (!aiQuizService) {
+        return res.status(500).json({ 
+            message: 'AI Quiz Service not configured. Please check server configuration.' 
+        });
     }
 
     try {
-        // 1. Generate quiz structure using AI service
-        const quizData = await aiQuizService.generateQuizFromTopics(courseName, topics, difficulty); // Pass difficulty
+        console.log('Generating quiz for:', courseName, 'with', topics.length, 'topics');
+        
+        // Generate quiz using AI service
+        const quizData = await aiQuizService.generateQuizFromTopics(
+            courseName, 
+            topics, 
+            difficulty || 'Mixed'
+        );
 
-        // 2. Save the new quiz to the database
+        // Save to database
         const newQuiz = new Quiz({
-            title: quizData.title,
+            title: quizData.title || `${courseName} Quiz`,
             courseName: courseName,
-            questions: quizData.questions,
+            questions: quizData.questions.map(q => ({
+                questionText: q.questionText,
+                type: q.type,
+                options: q.options || [],
+                correctAnswer: q.correctAnswer,
+                topic: q.topic,
+                difficulty: q.difficulty
+            })),
             userId: userId,
         });
 
         await newQuiz.save();
 
-        // 3. Return the saved quiz ID and the questions (without correct answers)
-        const questionsForFrontend = newQuiz.questions.map(q => ({
-            quizId: newQuiz._id, // Add quiz ID to each question for easy reference
-            id: q.id,
+        console.log('Quiz saved successfully with ID:', newQuiz._id);
+
+        // Return questions WITHOUT correct answers
+        const questionsForFrontend = newQuiz.questions.map((q, index) => ({
+            id: index + 1,
             questionText: q.questionText,
             type: q.type,
             options: q.options,
@@ -62,16 +91,22 @@ router.route('/generate').post(async (req, res) => {
             difficulty: q.difficulty,
         }));
 
-        res.json({ quizId: newQuiz._id, title: newQuiz.title, questions: questionsForFrontend });
+        res.json({ 
+            quizId: newQuiz._id, 
+            title: newQuiz.title, 
+            questions: questionsForFrontend 
+        });
 
     } catch (error) {
         console.error('Quiz Generation Error:', error);
-        res.status(500).json({ message: 'Failed to generate quiz. Try again later.' });
+        res.status(500).json({ 
+            message: 'Failed to generate quiz. ' + (error.message || 'Try again later.') 
+        });
     }
 });
 
-// POST /quiz/submit/:quizId - Receives user answers and scores the quiz
-router.route('/submit/:quizId').post(async (req, res) => {
+// POST /quiz/submit/:quizId - Submit quiz answers
+router.post('/submit/:quizId', async (req, res) => {
     const { submittedAnswers } = req.body;
 
     if (!submittedAnswers || Object.keys(submittedAnswers).length === 0) {
@@ -84,10 +119,10 @@ router.route('/submit/:quizId').post(async (req, res) => {
             return res.status(404).json({ message: 'Quiz not found.' });
         }
 
-        // 1. Calculate the score using the correct answers stored in the DB
+        // Calculate score
         const { score, totalQuestions } = calculateScore(quiz, submittedAnswers);
 
-        // 2. Save the attempt details to the quiz document
+        // Save attempt to Quiz collection
         const newAttempt = {
             submittedAnswers: submittedAnswers,
             score: score,
@@ -95,50 +130,80 @@ router.route('/submit/:quizId').post(async (req, res) => {
         };
         quiz.attempts.push(newAttempt);
         await quiz.save();
+
+        // ALSO save to QuizResult collection for history tracking
+        const questionsAttempted = quiz.questions.map((q, index) => {
+            const questionId = index + 1;
+            const studentAnswer = submittedAnswers[questionId] || '[No Answer]';
+            let isCorrect = false;
+
+            if (q.type === 'MCQ' || q.type === 'TrueFalse') {
+                isCorrect = studentAnswer === q.correctAnswer;
+            } else if (q.type === 'ShortAnswer') {
+                isCorrect = studentAnswer.trim().length >= 10;
+            }
+
+            return {
+                questionText: q.questionText,
+                correctAnswer: q.correctAnswer,
+                studentAnswer: studentAnswer,
+                isCorrect: isCorrect
+            };
+        });
+
+        const quizResult = new QuizResult({
+            courseName: quiz.courseName,
+            quizType: 'Mixed',
+            score: score,
+            totalQuestions: totalQuestions,
+            questionsAttempted: questionsAttempted
+        });
+        await quizResult.save();
+
+        console.log('Quiz submitted successfully. Score:', score, '/', totalQuestions);
         
-        // 3. Return the score and the detailed feedback (answers)
+        // Return detailed feedback
         res.json({
             message: 'Quiz submitted successfully.',
             score: score,
             total: totalQuestions,
+            percentage: Math.round((score / totalQuestions) * 100),
             quizTitle: quiz.title,
-            questions: quiz.questions, // Include correct answers for feedback
+            questions: quiz.questions,
             submittedAnswers: submittedAnswers
         });
 
     } catch (error) {
         console.error('Quiz Submission Error:', error);
-        res.status(500).json({ message: 'Failed to submit and score quiz.' });
+        res.status(500).json({ message: 'Failed to submit quiz.' });
     }
 });
 
-// GET /quiz/history/:courseName - Get quiz attempt history for a course
-router.route('/history/:courseName').get(async (req, res) => {
+// GET /quiz/history/:courseName - Get quiz history
+router.get('/history/:courseName', async (req, res) => {
     try {
         const { courseName } = req.params;
         
-        const quizzes = await Quiz.find({ courseName })
-            .select('attempts title')
-            .sort({ createdAt: -1 });
+        const results = await QuizResult.find({ courseName })
+            .sort({ submittedAt: -1 })
+            .limit(20);
 
-        const history = [];
-        quizzes.forEach(quiz => {
-            quiz.attempts.forEach(attempt => {
-                history.push({
-                    title: quiz.title,
-                    score: attempt.score,
-                    totalQuestions: attempt.totalQuestions,
-                    percentage: Math.round((attempt.score / attempt.totalQuestions) * 100),
-                    date: attempt.scoredAt
-                });
-            });
-        });
+        const history = results.map(result => ({
+            title: `${courseName} Quiz`,
+            score: result.score,
+            totalQuestions: result.totalQuestions,
+            percentage: Math.round((result.score / result.totalQuestions) * 100),
+            date: result.submittedAt
+        }));
         
         res.json(history);
         
     } catch (error) {
         console.error('Quiz History Error:', error);
-        res.status(500).json({ message: 'Failed to fetch history', error: error.message });
+        res.status(500).json({ 
+            message: 'Failed to fetch quiz history', 
+            error: error.message 
+        });
     }
 });
 

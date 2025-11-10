@@ -4,8 +4,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
@@ -23,6 +24,7 @@ const documentsRouter = require('./routes/documents');
 const chatRouter = require('./routes/chat');
 const dashboardRouter = require('./routes/dashboard');
 const examRouter = require('./routes/exam');
+const quizRoutes = require('./routes/quiz');
 
 // Load Mongoose models (ensures models are defined)
 require('./models/chatThread.model');
@@ -30,6 +32,7 @@ require('./models/document.model');
 require('./models/task.model');
 
 // --- Route Usage ---
+app.use('/quiz', quizRoutes);
 app.use('/tasks', tasksRouter);
 app.use('/documents', documentsRouter);
 app.use('/chat', chatRouter);

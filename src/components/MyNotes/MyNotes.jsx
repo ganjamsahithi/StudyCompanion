@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './MyNotes.css';
 
 // Base URL for the backend API (Must match your Express/Node.js setup on port 8000)
-const API_BASE_URL = 'http://localhost:8000/documents'; 
+const API_BASE_URL = 'http://localhost:5000/documents'; 
 
 // --- Helper Function: Markdown to HTML Conversion (Crucial for rendering summaries) ---
 const markdownToHtml = (markdown) => {

@@ -471,9 +471,9 @@
 }
 
 /* Topics Content */
-.topics-content {
+/* .topics-content { */
     /* Main area style for topics */
-}
+/* } */
 
 .topics-grid {
     display: grid;
@@ -563,9 +563,9 @@
 }
 
 /* --- Practice Questions Content --- */
-.practice-content {
+/* .practice-content { */
     /* Main area style for questions */
-}
+/* } */
 
 .questions-container {
     display: grid;
@@ -636,10 +636,10 @@
     color: #764ba2;
 }
 
-/* --- Study Plan/Roadmap Content --- */
+/* --- Study Plan/Roadmap Content ---
 .plan-content {
     /* Main area style for the roadmap */
-}
+/* } */ */
 
 .roadmap-header {
     display: flex;

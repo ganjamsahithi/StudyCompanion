@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './Chat.css';
 
-const API_BASE_URL = 'http://localhost:8000/chat';
+const API_BASE_URL = 'http://localhost:5000/chat';
 
 // --- Helper Function: Markdown to HTML Conversion ---
 const markdownToHtml = (markdown) => {

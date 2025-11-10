@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './Tasks.css';
 import TaskDeleteConfirmation from './TaskDeleteConfirmation'; 
 
-const API_BASE_URL = 'http://localhost:8000/tasks';
+const API_BASE_URL = 'http://localhost:5000/tasks';
 
 // Helper to format date for display (FIXED to DD/MM/YYYY and includes time)
 const formatDateDisplay = (dateString) => {

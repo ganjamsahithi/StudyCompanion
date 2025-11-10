@@ -10,26 +10,41 @@ const aiService = require('../services/ai.service');
 // --- File Upload Setup (Multer) ---
 const uploadDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Storage with sanitized filename (preserve extension)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, uploadDir); 
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname.replace(/\s/g, '_'));
+        // Keep original extension, replace spaces in name
+        const safeName = file.originalname.replace(/\s+/g, '_');
+        cb(null, `${Date.now()}-${safeName}`);
     }
 });
 
-const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
+// Accept all file types: permissive fileFilter
+const fileFilter = (req, file, cb) => {
+    // Always accept — caller wanted all file formats allowed.
+    // If you later want restrictions, add logic here.
+    cb(null, true);
+};
+
+// Increase file size limit if needed (50 MB here)
+const upload = multer({
+    storage,
+    fileFilter,
+    // limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+});
 
 // GET /documents/ - List all uploaded documents
 router.route('/').get((req, res) => {
     Document.find()
         .sort({ uploadedDate: -1 })
         .then(documents => res.json(documents))
-        .catch(err => res.status(400).json('Error fetching documents: ' + err));
+        .catch(err => res.status(400).json({ message: 'Error fetching documents', error: err.message }));
 });
 
 // POST /documents/upload - Upload a new document and save metadata
@@ -38,21 +53,21 @@ router.route('/upload').post(upload.single('document'), (req, res) => {
         return res.status(400).json({ message: 'No file selected or file type is invalid.' });
     }
 
-    // NOTE: Frontend sends 'course' but backend receives 'courseName'. I've defaulted to 'General' to match model.
-    const { course } = req.body;
-    
+    // Accept both 'course' and 'courseName' from frontend
+    const course = req.body.course || req.body.courseName;
+
     const newDocument = new Document({
         fileName: req.file.originalname,
         filePath: req.file.path,
-        fileMimeType: req.file.mimetype,
-        courseName: course || 'General', // Use 'course' from req.body
-        userId: 'default_user', // Keep consistent, or remove if not used
+        fileMimeType: req.file.mimetype || 'application/octet-stream',
+        courseName: course || 'General',
+        userId: req.body.userId || 'default_user',
         summary: null,
     });
 
     newDocument.save()
         .then(doc => res.json({ message: 'Document uploaded successfully, awaiting summary.', document: doc }))
-        .catch(err => res.status(400).json('Error saving document metadata: ' + err));
+        .catch(err => res.status(400).json({ message: 'Error saving document metadata', error: err.message }));
 });
 
 // POST /documents/summarize/:id - Trigger AI summarization and update document
@@ -79,7 +94,7 @@ router.route('/summarize/:id').post(async (req, res) => {
     }
 });
 
-// <<< FIX: NEW DELETE ROUTE FOR /documents/:id >>>
+// DELETE /documents/:id - Delete document metadata and physical file
 router.route('/:id').delete(async (req, res) => {
     const docId = req.params.id;
 
@@ -90,27 +105,25 @@ router.route('/:id').delete(async (req, res) => {
             return res.status(404).json({ message: 'Document metadata not found in database.' });
         }
 
-        // 2. Delete the physical file from the 'uploads' directory
-        fs.unlink(docToDelete.filePath, (err) => {
-            if (err) {
-                // IMPORTANT: Log the file deletion error but don't stop the DB deletion.
-                // It's better to have a leftover file than a broken database entry.
-                console.warn(`[WARNING] Failed to delete physical file at ${docToDelete.filePath}:`, err);
-            }
-        });
+        // 2. Delete the physical file from the 'uploads' directory (await so we know result)
+        try {
+            await fs.promises.unlink(docToDelete.filePath);
+        } catch (fileErr) {
+            // Don't fail the whole operation if the file wasn't found or couldn't be deleted,
+            // but log the problem for debugging.
+            console.warn(`[WARNING] Failed to delete physical file at ${docToDelete.filePath}:`, fileErr.message);
+        }
 
         // 3. Delete the document metadata from MongoDB
         await Document.findByIdAndDelete(docId);
         
-        // 4. Send successful JSON response (required by frontend)
+        // 4. Send successful JSON response
         res.json({ message: 'Document and file deleted successfully.' });
 
     } catch (error) {
         console.error('Document Deletion Error:', error);
-        // Send a proper 500 JSON response so the frontend doesn't throw the JSON parsing error
         res.status(500).json({ message: 'Failed to delete document.', error: error.message });
     }
 });
-// <<< END FIX >>>
 
 module.exports = router;

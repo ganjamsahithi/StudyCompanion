@@ -1,10 +1,10 @@
 // src/components/ExamPredictor/ExamPredictor.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import './ExamPredictor.css';
+import QuizHistoryAndGenerator from './QuizHistoryAndGenerator';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:5000';
 
-// Helper to format date display consistently (DD/MM/YYYY hh:mm AM/PM)
 const formatDateDisplay = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
         year: 'numeric',
@@ -16,7 +16,6 @@ const formatDateDisplay = (dateString) => {
     });
 };
 
-// Helper to calculate remaining time in days, hours, and minutes
 const getTimeRemaining = (examDateString) => {
     const total = new Date(examDateString) - new Date();
     if (total <= 0) return { days: 0, hours: 0, minutes: 0, total: 0 };
@@ -28,6 +27,33 @@ const getTimeRemaining = (examDateString) => {
     return { days, hours, minutes, total };
 };
 
+const getDaysUntil = (date) => {
+    const today = new Date();
+    const examDate = new Date(date);
+    const diffTime = examDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+};
+
+const getUrgencyLevel = (days) => {
+    if (days < 0) return 'overdue';
+    if (days <= 3) return 'critical';
+    if (days <= 7) return 'high';
+    if (days <= 14) return 'medium';
+    return 'normal';
+};
+
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
 const ExamPredictor = () => {
     const [upcomingExams, setUpcomingExams] = useState([]);
     const [selectedExam, setSelectedExam] = useState(null);
@@ -37,72 +63,71 @@ const ExamPredictor = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [exportMessage, setExportMessage] = useState('');
     
-    // New state variables for syllabus functionality
+    // Schedule and Quiz states
+    const [scheduleTasks, setScheduleTasks] = useState([]);
+    const [quizHistory, setQuizHistory] = useState([]);
+    const [preparedness, setPreparedness] = useState(0);
+    const [regeneratingSchedule, setRegeneratingSchedule] = useState(false);
+    
+    // Topic syllabus states
     const [selectedTopic, setSelectedTopic] = useState(null);
     const [topicSyllabus, setTopicSyllabus] = useState(null);
     const [loadingSyllabus, setLoadingSyllabus] = useState(false);
 
-    const fetchUpcomingExams = useCallback(async () => {
-        try {
-            // New endpoint to fetch only exams
-            const response = await fetch(`${API_BASE_URL}/tasks/exams`); 
-            if (!response.ok) throw new Error('Failed to fetch exams');
-            
-            const exams = await response.json();
-            setUpcomingExams(exams);
-            
-            if (exams.length > 0) {
-                // If no exam is selected or the current one was deleted, select the first one
-                if (!selectedExam) {
-                    handleExamSelect(exams[0]);
-                } else if (!exams.some(e => e._id === selectedExam._id)) {
-                    // If previously selected exam no longer exists, load the first one
-                     handleExamSelect(exams[0]);
-                }
-            } else if (selectedExam) {
-                // If no exams exist but one was selected, clear the view
-                setSelectedExam(null);
-                setExamPrediction(null);
-            }
-        } catch (err) {
-            console.error('Error fetching exams:', err);
-            setError('Failed to load exams. Ensure backend is running.');
-        }
+    const calculatePreparedness = useCallback((prediction, history, schedule) => {
+        if (!prediction || !selectedExam) return setPreparedness(0);
+        
+        const quizCount = history.length;
+        const maxQuizzesForWeight = 5; 
+        const totalScoreRatio = quizCount > 0 
+            ? history.reduce((sum, res) => sum + (res.score / res.totalQuestions), 0) / quizCount 
+            : 0;
+        
+        const quizWeight = Math.min(quizCount / maxQuizzesForWeight, 1) * totalScoreRatio * 0.5;
+
+        const totalTasks = schedule.length;
+        const completedTasks = schedule.filter(t => t.isCompleted).length;
+        
+        const taskWeight = totalTasks > 0 ? (completedTasks / totalTasks) * 0.5 : 0;
+
+        const finalPercentage = Math.round((quizWeight + taskWeight) * 100);
+        setPreparedness(finalPercentage);
     }, [selectedExam]);
 
-    const handleExamSelect = async (exam) => {
-        setSelectedExam(exam);
-        setLoading(true);
-        setError('');
-        setExamPrediction(null);
-        setExportMessage('');
-        setSelectedTopic(null);
-        setTopicSyllabus(null);
-
+    const fetchQuizHistory = useCallback(async (courseName) => {
         try {
-            const response = await fetch(
-                // Uses courseName, which is critical for AI relevance
-                `${API_BASE_URL}/exam/predict/${encodeURIComponent(exam.courseName)}`
-            );
-            
-            const data = await response.json();
-
+            const response = await fetch(`${API_BASE_URL}/quiz/history/${encodeURIComponent(courseName)}`);
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to generate predictions');
+                console.warn('Quiz history not found, starting fresh');
+                return [];
             }
-
-            setExamPrediction(data);
-            setActiveTab('overview');
+            const history = await response.json();
+            setQuizHistory(history);
+            return history;
         } catch (err) {
-            console.error('Prediction error:', err);
-            // This error handling is crucial for debugging the AI irrelevance issue
-            setError(err.message);
-        } finally {
-            setLoading(false);
+            console.error('Error fetching quiz history:', err);
+            setQuizHistory([]);
+            return [];
         }
-    };
+    }, []);
 
-    // New function to fetch syllabus for a selected topic
+    const fetchStudyScheduleTasks = useCallback(async (examId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/exam/schedule/${examId}`);
+            if (!response.ok) {
+                console.warn('No schedule found for this exam');
+                return [];
+            }
+            const tasks = await response.json();
+            setScheduleTasks(tasks);
+            return tasks;
+        } catch (err) {
+            console.error('Error fetching study schedule:', err);
+            setScheduleTasks([]);
+            return [];
+        }
+    }, []);
+
     const fetchTopicSyllabus = async (topic) => {
         setSelectedTopic(topic);
         setLoadingSyllabus(true);
@@ -133,107 +158,154 @@ const ExamPredictor = () => {
         }
     };
 
+    const handleExamSelect = async (exam) => {
+        setSelectedExam(exam);
+        setLoading(true);
+        setError('');
+        setExamPrediction(null);
+        setExportMessage('');
+        setPreparedness(0);
+        setSelectedTopic(null);
+        setTopicSyllabus(null);
+
+        try {
+            const predictionResponse = await fetch(
+                `${API_BASE_URL}/exam/predict/${encodeURIComponent(exam.courseName)}`
+            );
+            
+            const predictionData = await predictionResponse.json();
+
+            if (!predictionResponse.ok) {
+                throw new Error(predictionData.message || 'Failed to generate predictions');
+            }
+
+            setExamPrediction(predictionData);
+            setActiveTab('overview');
+            
+            const schedule = await fetchStudyScheduleTasks(exam._id);
+            const history = await fetchQuizHistory(exam.courseName);
+            
+            calculatePreparedness(predictionData, history, schedule);
+
+        } catch (err) {
+            console.error('Prediction error:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchUpcomingExams = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/tasks/exams`); 
+            if (!response.ok) throw new Error('Failed to fetch exams');
+            
+            const exams = await response.json();
+            setUpcomingExams(exams);
+            
+            if (exams.length > 0) {
+                if (!selectedExam) {
+                    handleExamSelect(exams[0]);
+                } else if (!exams.some(e => e._id === selectedExam._id)) {
+                    handleExamSelect(exams[0]);
+                }
+            } else if (selectedExam) {
+                setSelectedExam(null);
+                setExamPrediction(null);
+            }
+        } catch (err) {
+            console.error('Error fetching exams:', err);
+            setError('Failed to load exams. Ensure backend is running.');
+        }
+    }, [selectedExam]);
+
     useEffect(() => {
         fetchUpcomingExams();
-    }, [fetchUpcomingExams]);
-
-    // --- Helper Functions (same as previous, used for UI) ---
-    const getDaysUntil = (date) => {
-        const today = new Date();
-        const examDate = new Date(date);
-        const diffTime = examDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
-    };
-
-    const getUrgencyLevel = (days) => {
-        if (days < 0) return 'overdue';
-        if (days <= 3) return 'critical';
-        if (days <= 7) return 'high';
-        if (days <= 14) return 'medium';
-        return 'normal';
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-GB', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    }, []);
     
-    const calculateTotalHours = () => {
-        if (!examPrediction?.revisionRoadmap?.phases) return 0;
-        return examPrediction.revisionRoadmap.phases.reduce((totalHours, phase) => {
-            return totalHours + phase.tasks.reduce((phaseHours, task) => phaseHours + task.hours, 0);
-        }, 0);
-    };
+    useEffect(() => {
+        calculatePreparedness(examPrediction, quizHistory, scheduleTasks);
+    }, [examPrediction, quizHistory, scheduleTasks, calculatePreparedness]);
 
-    // --- NEW: Study Schedule Completion (Delete on Check) ---
-    const handleTaskCompletion = async (taskId, taskName) => {
-        // Confirmation is needed to prevent accidental deletion of a phase
-        if (!window.confirm(`Marking "${taskName}" complete will delete it from your Tasks list. Continue?`)) {
+    const handleScheduleTaskCompletion = async (taskId, taskName, isCompleted) => {
+        if (isCompleted) {
+            alert("This task is already completed and cannot be unticked.");
+            return;
+        }
+
+        if (!window.confirm(`Marking "${taskName}" complete. Continue?`)) {
             return;
         }
 
         try {
-            // Call the general task delete endpoint
-            const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-                method: 'DELETE'
+            const response = await fetch(`${API_BASE_URL}/exam/schedule/complete/${taskId}`, {
+                method: 'POST'
             });
 
             if (!response.ok) {
-                throw new Error('Failed to delete task.');
+                throw new Error('Failed to mark task complete.');
             }
             
-            // Success: Notify user and refetch exams to update the schedule display
-            setExportMessage('Study task completed and removed from schedule!');
-            // Re-fetch the current exam prediction to show the schedule without the deleted task
-            handleExamSelect(selectedExam); 
-
+            setExportMessage('Study task completed and marked off!');
+            await fetchStudyScheduleTasks(selectedExam._id);
         } catch (err) {
-            console.error('Task Deletion Error:', err);
-            setExportMessage(`Error deleting task: ${err.message}`);
+            console.error('Task Completion Error:', err);
+            setExportMessage(`Error marking task complete: ${err.message}`);
         }
     };
 
-
-    // --- Export Roadmap Functionality ---
     const exportRoadmap = async () => {
         if (!examPrediction || !selectedExam) return;
-        setExportMessage('Exporting roadmap to Tasks & Deadlines...');
+        
+        const hasExistingSchedule = scheduleTasks.length > 0;
+        
+        if (hasExistingSchedule) {
+            const confirmed = window.confirm(
+                "A study schedule already exists for this exam. Regenerating will DELETE the current schedule and create a new one. Continue?"
+            );
+            if (!confirmed) return;
+        }
+        
+        setRegeneratingSchedule(true);
+        setExportMessage(hasExistingSchedule ? 'Regenerating schedule...' : 'Generating study schedule...');
+        
         try {
+            if (hasExistingSchedule) {
+                const deleteResponse = await fetch(`${API_BASE_URL}/exam/schedule/${selectedExam._id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!deleteResponse.ok) {
+                    throw new Error('Failed to delete existing schedule');
+                }
+            }
+            
             const response = await fetch(`${API_BASE_URL}/exam/export-roadmap`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     roadmap: examPrediction.revisionRoadmap,
-                    courseName: selectedExam.courseName
+                    courseName: selectedExam.courseName,
+                    examId: selectedExam._id
                 })
             });
+            
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to export roadmap.');
             }
-            setExportMessage(data.message);
+            
+            setExportMessage(hasExistingSchedule ? 'Schedule regenerated successfully!' : data.message);
+            await fetchStudyScheduleTasks(selectedExam._id);
         } catch (err) {
             console.error('Export Error:', err);
             setExportMessage(`Export failed: ${err.message}`);
+        } finally {
+            setRegeneratingSchedule(false);
         }
     };
     
-    // Placeholder functions for Quiz/Practice buttons
-    const generateQuiz = () => alert('Generating custom quiz...');
-    const attemptQuestion = () => alert('Attempting question now...');
-    
-    // Calculate remaining time for the selected exam
     const timeRemaining = selectedExam ? getTimeRemaining(selectedExam.dueDate) : { days: 0, hours: 0, minutes: 0, total: 0 };
-
-    // --- Rendering ---
-    const totalStudyHours = calculateTotalHours();
 
     return (
         <div className="exam-predictor">
@@ -241,13 +313,14 @@ const ExamPredictor = () => {
                 <h2>📚 Exam Preparation Center</h2>
                 <p>AI-powered study plans for your upcoming exams</p>
             </div>
+            
             {error && (
                 <div className="error-banner">
                     <span>⚠️</span>
                     <div>
-                        <p><strong>Prediction Failed</strong></p>
+                        <p><strong>Error</strong></p>
                         <p>{error}</p>
-                        <small>Make sure you have uploaded notes for <strong>{selectedExam?.courseName}</strong></small>
+                        {selectedExam && <small>Make sure you have uploaded notes for <strong>{selectedExam.courseName}</strong></small>}
                     </div>
                 </div>
             )}
@@ -292,6 +365,7 @@ const ExamPredictor = () => {
                     </div>
                 </div>
             )}
+            
             {loading && selectedExam && (
                 <div className="loading-container">
                     <div className="loading-spinner"></div>
@@ -299,6 +373,7 @@ const ExamPredictor = () => {
                     <span className="loading-subtext">Generating practice questions and study plan...</span>
                 </div>
             )}
+            
             {selectedExam && examPrediction && !loading && (
                 <div className="prediction-container">
                     <div className={`exam-info-header urgency-${getUrgencyLevel(getDaysUntil(selectedExam.dueDate))}`}>
@@ -323,6 +398,7 @@ const ExamPredictor = () => {
                             </div>
                         )}
                     </div>
+                    
                     <div className="prediction-tabs">
                         <button
                             className={`pred-tab ${activeTab === 'overview' ? 'active' : ''}`}
@@ -349,6 +425,7 @@ const ExamPredictor = () => {
                             📅 Study Schedule
                         </button>
                     </div>
+                    
                     <div className="tab-content-area">
                         {activeTab === 'overview' && (
                             <div className="overview-content">
@@ -356,12 +433,12 @@ const ExamPredictor = () => {
                                     <div className="stat-box">
                                         <span className="stat-icon">📚</span>
                                         <span className="stat-value">{examPrediction.topicsLikely?.length || 0}</span>
-                                        <span className="stat-label">Predicted Topics</span>
+                                        <span className="stat-label">Key Topics Detected</span>
                                     </div>
                                     <div className="stat-box">
-                                        <span className="stat-icon">⏰</span>
-                                        <span className="stat-value">{examPrediction.revisionRoadmap?.totalStudyHours || 0}h</span>
-                                        <span className="stat-label">Study Time Needed</span>
+                                        <span className="stat-icon">📈</span>
+                                        <span className="stat-value">{preparedness}%</span>
+                                        <span className="stat-label">Preparedness Score</span>
                                     </div>
                                     <div className="stat-box">
                                         <span className="stat-icon">📄</span>
@@ -390,6 +467,7 @@ const ExamPredictor = () => {
                                 )}
                             </div>
                         )}
+                        
                         {activeTab === 'topics' && (
                             <div className="topics-content">
                                 <h4>📖 Important Topics for Exam</h4>
@@ -419,7 +497,6 @@ const ExamPredictor = () => {
                                             ))}
                                         </div>
 
-                                        {/* Syllabus Display Section */}
                                         {loadingSyllabus && (
                                             <div className="syllabus-loading">
                                                 <div className="loading-spinner"></div>
@@ -443,7 +520,6 @@ const ExamPredictor = () => {
                                                 </div>
 
                                                 <div className="syllabus-content">
-                                                    {/* Overview Section */}
                                                     {topicSyllabus.overview && (
                                                         <div className="syllabus-section">
                                                             <h4>📋 Overview</h4>
@@ -451,7 +527,6 @@ const ExamPredictor = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* Subtopics Section */}
                                                     {topicSyllabus.subtopics && topicSyllabus.subtopics.length > 0 && (
                                                         <div className="syllabus-section">
                                                             <h4>📑 Key Subtopics</h4>
@@ -476,7 +551,6 @@ const ExamPredictor = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* Learning Objectives */}
                                                     {topicSyllabus.learningObjectives && topicSyllabus.learningObjectives.length > 0 && (
                                                         <div className="syllabus-section">
                                                             <h4>🎯 Learning Objectives</h4>
@@ -488,7 +562,6 @@ const ExamPredictor = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* Study Tips */}
                                                     {topicSyllabus.studyTips && topicSyllabus.studyTips.length > 0 && (
                                                         <div className="syllabus-section study-tips">
                                                             <h4>💡 Study Tips</h4>
@@ -500,7 +573,6 @@ const ExamPredictor = () => {
                                                         </div>
                                                     )}
 
-                                                    {/* Estimated Study Time */}
                                                     {topicSyllabus.estimatedStudyTime && (
                                                         <div className="syllabus-section study-time">
                                                             <h4>⏱️ Estimated Study Time</h4>
@@ -518,42 +590,15 @@ const ExamPredictor = () => {
                                 )}
                             </div>
                         )}
-                        {activeTab === 'practice' && (
-                            <div className="practice-content">
-                                <div className="roadmap-header">
-                                    <h4>✍️ AI-Generated Practice Questions</h4>
-                                    <button className="export-btn" onClick={generateQuiz}>
-                                        ⚡ Generate Custom Quiz
-                                    </button>
-                                </div>
-                                {examPrediction.practiceQuestions && examPrediction.practiceQuestions.length > 0 ? (
-                                    <div className="questions-container">
-                                        {examPrediction.practiceQuestions.map((q, idx) => (
-                                            <div key={idx} className="question-box">
-                                                <div className="question-header-row">
-                                                    <span className="q-number">Q{idx + 1}</span>
-                                                    <span className={`diff-badge ${(q.difficulty || 'medium').toLowerCase()}`}>
-                                                        {q.difficulty || 'Medium'}
-                                                    </span>
-                                                </div>
-                                                <p className="question-text">{q.question}</p>
-                                                <div className="q-meta">
-                                                    <span className="q-topic">📌 {q.topic}</span>
-                                                    {q.estimatedTime && (
-                                                        <span className="q-time">⏱️ {q.estimatedTime}</span>
-                                                    )}
-                                                    <button className="attempt-btn" onClick={attemptQuestion}>Attempt Now →</button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="empty-content">
-                                        <p>No practice questions available yet.</p>
-                                    </div>
-                                )}
-                            </div>
+
+                        {activeTab === 'practice' && selectedExam && (
+                            <QuizHistoryAndGenerator 
+                                courseName={selectedExam.courseName}
+                                examPrediction={examPrediction}
+                                onQuizComplete={() => fetchQuizHistory(selectedExam.courseName)}
+                            />
                         )}
+
                         {activeTab === 'plan' && (
                             <div className="plan-content">
                                 <div className="roadmap-header">
@@ -563,38 +608,56 @@ const ExamPredictor = () => {
                                             AI-generated plan to cover all topics before exam day
                                         </p>
                                     </div>
-                                    <button className="export-btn" onClick={exportRoadmap}>
-                                        📅 Export to Calendar
+                                    <button 
+                                        className="export-btn" 
+                                        onClick={exportRoadmap}
+                                        disabled={regeneratingSchedule}
+                                        style={scheduleTasks.length > 0 ? {backgroundColor: '#e9b500'} : {}}
+                                    >
+                                        {regeneratingSchedule ? '⏳ Processing...' : 
+                                         scheduleTasks.length > 0 ? '🔄 Regenerate Schedule' : '📅 Generate Schedule'}
                                     </button>
                                 </div>
-                                {examPrediction.revisionRoadmap && examPrediction.revisionRoadmap.phases.length > 0 ? (
+                                
+                                {scheduleTasks.length > 0 ? (
                                     <div className="schedule-timeline">
-                                        {examPrediction.revisionRoadmap.phases.map((phase, idx) => (
+                                        {Object.values(scheduleTasks.reduce((phases, task) => {
+                                            const phaseName = task.taskName.split(' | ')[0] || 'Uncategorized';
+                                            if (!phases[phaseName]) {
+                                                phases[phaseName] = { phase: phaseName, tasks: [] };
+                                            }
+                                            phases[phaseName].tasks.push(task);
+                                            return phases;
+                                        }, {}))
+                                        .map((phase, idx) => (
                                             <div key={idx} className="schedule-phase">
                                                 <div className="phase-header-row">
                                                     <span className="phase-num">{phase.phase}</span>
-                                                    {phase.startDate && phase.endDate && (
-                                                        <span className="phase-dates">
-                                                            {formatDateDisplay(phase.startDate)} -
-                                                            {formatDateDisplay(phase.endDate)}
-                                                        </span>
-                                                    )}
+                                                    <span className="phase-dates">
+                                                        Due: {formatDateDisplay(phase.tasks[phase.tasks.length - 1].dueDate).split(',')[0]}
+                                                    </span>
                                                 </div>
                                                 <div className="phase-tasks-list">
-                                                    {phase.tasks && phase.tasks.map((task, tIdx) => (
-                                                        <div key={tIdx} className="schedule-task">
+                                                    {phase.tasks.map((task) => (
+                                                        <div key={task._id} className="schedule-task">
                                                             <input 
                                                                 type="checkbox" 
-                                                                id={`pt-${idx}-${tIdx}`} 
-                                                                onChange={() => handleTaskCompletion(task.taskId || task.task, task.task)}
+                                                                checked={task.isCompleted}
+                                                                disabled={task.isCompleted} 
+                                                                onChange={() => handleScheduleTaskCompletion(task._id, task.taskName, task.isCompleted)}
                                                             />
-                                                            <label htmlFor={`pt-${idx}-${tIdx}`}>
-                                                                <span className="task-text">{task.task}</span>
+                                                            <label htmlFor={`task-${task._id}`}>
+                                                                <span 
+                                                                    className="task-text" 
+                                                                    style={{ 
+                                                                        textDecoration: task.isCompleted ? 'line-through' : 'none', 
+                                                                        color: task.isCompleted ? '#999' : '#333' 
+                                                                    }}
+                                                                >
+                                                                    {task.taskName.split(' | ')[1] || task.taskName}
+                                                                </span>
                                                                 <div className="task-meta">
-                                                                    <span className="task-hours">⏰ {task.hours}h</span>
-                                                                    <span className={`task-priority ${task.priority.toLowerCase()}`}>
-                                                                        {task.priority}
-                                                                    </span>
+                                                                    <span className="task-date">🎯 {formatDateDisplay(task.dueDate).split(',')[0]}</span>
                                                                 </div>
                                                             </label>
                                                         </div>
@@ -605,14 +668,7 @@ const ExamPredictor = () => {
                                     </div>
                                 ) : (
                                     <div className="empty-content">
-                                        <h5>📌 General Study Strategy:</h5>
-                                        <ol className="generic-plan">
-                                            <li>Review all lecture notes thoroughly</li>
-                                            <li>Focus on high-priority topics first</li>
-                                            <li>Practice problems from each topic</li>
-                                            <li>Create summary sheets for quick review</li>
-                                            <li>Do a complete mock test 2 days before exam</li>
-                                        </ol>
+                                        <p>No personalized schedule saved yet. Click "Generate Schedule" to create one based on AI analysis!</p>
                                     </div>
                                 )}
                             </div>
@@ -620,13 +676,13 @@ const ExamPredictor = () => {
                     </div>
                 </div>
             )}
-
+            
             {!selectedExam && !loading && upcomingExams.length > 0 && (
                 <div className="no-data-message">
                     <p>Select an exam above to generate your personalized preparation report.</p>
                 </div>
             )}
-             {!selectedExam && !loading && upcomingExams.length === 0 && (
+            {!selectedExam && !loading && upcomingExams.length === 0 && (
                 <div className="no-data-message">
                     <p>No exams scheduled yet. Go to <strong>Tasks & Deadlines</strong> to add some!</p>
                 </div>
