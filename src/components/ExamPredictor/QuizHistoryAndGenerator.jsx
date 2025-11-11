@@ -12,7 +12,6 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
     const [error, setError] = useState('');
     const [loadingHistory, setLoadingHistory] = useState(true);
 
-    // Fetch quiz history on mount
     useEffect(() => {
         if (courseName) {
             fetchQuizHistory();
@@ -44,7 +43,12 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
         setError('');
 
         try {
-            console.log('Generating', difficulty, 'quiz for:', courseName);
+            console.log('🎯 Generating', difficulty, 'quiz for:', courseName);
+
+            // Get topics from exam prediction or use generic
+            const topicSummary = examPrediction?.topicsLikely 
+                ? examPrediction.topicsLikely.map(t => `${t.topic}: ${t.description || ''}`).join('\n')
+                : `Generate questions covering core concepts of ${courseName}`;
 
             const response = await fetch(`${API_BASE_URL}/exam/generate-quiz`, {
                 method: 'POST',
@@ -64,12 +68,30 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
 
             const quizData = await response.json();
             
-            console.log('Quiz generated successfully:', quizData);
+            console.log('✅ Quiz generated:', quizData.questions?.length, 'questions');
 
-            // Set the quiz to display
-            setCurrentQuiz(quizData);
+            // Format for QuizInterface - KEY FIX HERE
+            const formattedQuiz = {
+                title: quizData.title,
+                quizType: quizData.quizType || difficulty,
+                questions: (quizData.questions || []).map(q => ({
+                    id: q.id,
+                    text: q.text, // Keep as 'text' for frontend
+                    type: q.type,
+                    options: q.options || [],
+                    answer: q.answer, // This will be checked later
+                    topic: q.topic || courseName,
+                    difficulty: q.difficulty || difficulty
+                }))
+            };
+
+            if (formattedQuiz.questions.length === 0) {
+                throw new Error('No questions generated. Please try again.');
+            }
+
+            setCurrentQuiz(formattedQuiz);
         } catch (err) {
-            console.error('Quiz Generation Error:', err);
+            console.error('❌ Quiz Generation Error:', err);
             setError(err.message || 'Failed to generate quiz. Please try again.');
         } finally {
             setGeneratingQuiz(false);
@@ -78,7 +100,7 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
 
     const handleQuizSubmit = async (quizType, score, totalQuestions, attemptedQuestions) => {
         try {
-            console.log('Submitting quiz results...');
+            console.log('💾 Submitting quiz results...');
 
             const response = await fetch(`${API_BASE_URL}/exam/quiz/submit`, {
                 method: 'POST',
@@ -93,32 +115,33 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to submit quiz');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to submit quiz');
             }
 
             const result = await response.json();
-            console.log('Quiz submitted successfully:', result);
+            console.log('✅ Quiz submitted successfully:', result);
 
-            // Refresh history
-            await fetchQuizHistory();
-            
-            // Notify parent to update preparedness
-            if (onQuizComplete) {
-                onQuizComplete();
-            }
-
-            // Keep quiz interface open to show results
-            // User will manually go back using the back button
+            // Small delay before refreshing history to ensure DB write completes
+            setTimeout(async () => {
+                await fetchQuizHistory();
+                
+                if (onQuizComplete) {
+                    onQuizComplete();
+                }
+            }, 500);
 
         } catch (err) {
-            console.error('Quiz Submission Error:', err);
-            setError('Failed to save quiz results. Please try again.');
+            console.error('❌ Quiz Submission Error:', err);
+            setError('Failed to save quiz results: ' + err.message);
         }
     };
 
     const handleBackToHistory = () => {
         setCurrentQuiz(null);
         setError('');
+        // Refresh history when going back
+        fetchQuizHistory();
     };
 
     // If actively taking a quiz, show QuizInterface
@@ -142,13 +165,7 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
                 </p>
 
                 {error && (
-                    <div className="error-message" style={{ 
-                        padding: '12px', 
-                        background: '#fee', 
-                        color: '#c33', 
-                        borderRadius: '6px',
-                        marginBottom: '16px'
-                    }}>
+                    <div className="error-message">
                         ⚠️ {error}
                     </div>
                 )}
@@ -204,7 +221,7 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
                         {generatingQuiz ? (
                             <>
                                 <span className="loading-spinner-small"></span>
-                                <span>Generating...</span>
+                                <span>Generating Quiz...</span>
                             </>
                         ) : (
                             <>
@@ -227,6 +244,7 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
 
                 {loadingHistory ? (
                     <div className="empty-content">
+                        <div className="loading-spinner-small" style={{margin: '0 auto'}}></div>
                         <p>Loading history...</p>
                     </div>
                 ) : quizHistory.length > 0 ? (
@@ -291,7 +309,7 @@ const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete })
                         )}
                     </div>
                     <p style={{ fontSize: '13px', color: '#7f8c8d', marginTop: '8px' }}>
-                        💡 Quiz questions are AI-generated from your uploaded course notes
+                        💡 Quiz questions are AI-generated from course topics and your uploaded notes
                     </p>
                 </div>
             )}

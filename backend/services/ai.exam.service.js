@@ -259,7 +259,7 @@ const QUIZ_SCHEMA = {
         },
         questions: {
             type: "ARRAY",
-            description: "Array of 11 questions (10 MCQs + 1 typing question)",
+            description: "Array of EXACTLY 11 questions (10 MCQs + 1 typing question)",
             items: {
                 type: "OBJECT",
                 properties: {
@@ -269,7 +269,7 @@ const QUIZ_SCHEMA = {
                     options: {
                         type: "ARRAY",
                         items: { type: "STRING" },
-                        description: "4 options for MCQ, empty for ShortAnswer"
+                        description: "EXACTLY 4 options for MCQ, empty array for ShortAnswer"
                     },
                     answer: { type: "STRING", description: "Correct answer" },
                     topic: { type: "STRING", description: "Related topic" },
@@ -345,20 +345,163 @@ Create exactly ${questionCount} multiple-choice questions (MCQs) and ${includeTy
 }
 
 /**
- * Generates a fallback quiz if AI generation fails
+ * Generates a quiz with 10 MCQs + 1 typing question
+ */
+async function generateQuiz(courseName, difficulty, questionCount = 10, includeTypingQuestion = true, documentContext = '') {
+    const systemPrompt = `You are an expert quiz creator for ${courseName}. 
+
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY ${questionCount} multiple-choice questions (MCQs)
+- Generate EXACTLY 1 short answer (typing) question
+- Total questions MUST be ${questionCount + 1}
+- Each MCQ MUST have EXACTLY 4 distinct options
+- Questions MUST be relevant to ${courseName}
+- Difficulty level: ${difficulty}
+- All questions MUST have ONE correct answer
+- Generate UNIQUE questions each time - avoid repetition
+
+MCQ Format:
+- type: "MCQ"
+- options: array of EXACTLY 4 strings
+- answer: one of the 4 options (exact match)
+
+Typing Question Format:
+- type: "ShortAnswer"  
+- options: empty array []
+- answer: expected answer description`;
+
+    const userPrompt = `Generate a ${difficulty} quiz for ${courseName} with EXACTLY ${questionCount} MCQ questions and EXACTLY 1 typing question (total ${questionCount + 1} questions).
+
+${documentContext ? `Base questions on this course content:\n${documentContext.substring(0, 3000)}` : `Generate questions based on core concepts of ${courseName}`}
+
+Question Requirements:
+1. MCQs (Questions 1-${questionCount}): Test fundamental concepts, practical applications, and problem-solving
+2. Typing Question (Question ${questionCount + 1}): Test comprehensive understanding with open-ended answer
+3. All questions MUST be unique and avoid common/generic questions
+4. Questions should cover different aspects of ${courseName}
+5. Make questions exam-realistic and valuable for learning
+
+IMPORTANT: Return EXACTLY ${questionCount + 1} questions, no more, no less.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: userPrompt }] }],
+            config: {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                responseMimeType: "application/json",
+                responseSchema: QUIZ_SCHEMA,
+                temperature: 0.9, // Higher temperature for more variety
+            }
+        });
+
+        const jsonString = response.text.trim();
+        const quizData = JSON.parse(jsonString);
+
+        // Validate question count
+        if (!quizData.questions || quizData.questions.length < (questionCount + 1)) {
+            console.warn(`AI generated only ${quizData.questions?.length || 0} questions, expected ${questionCount + 1}`);
+            // Fill with fallback questions if needed
+            quizData.questions = ensureQuestionCount(quizData.questions || [], courseName, difficulty, questionCount + 1);
+        }
+
+        // Validate and format questions
+        quizData.questions = quizData.questions.slice(0, questionCount + 1).map((q, index) => {
+            q.id = index + 1;
+            
+            // Ensure MCQ has 4 options
+            if (q.type === 'MCQ') {
+                if (!q.options || q.options.length !== 4) {
+                    q.options = ['Option A', 'Option B', 'Option C', 'Option D'];
+                }
+                // Ensure answer is one of the options
+                if (!q.options.includes(q.answer)) {
+                    q.answer = q.options[0];
+                }
+            }
+            
+            // Ensure ShortAnswer has empty options
+            if (q.type === 'ShortAnswer') {
+                q.options = [];
+            }
+            
+            // Ensure difficulty matches quiz difficulty for consistency
+            if (!q.difficulty) {
+                q.difficulty = difficulty === 'Mixed' ? ['Easy', 'Medium', 'Hard'][index % 3] : difficulty;
+            }
+            
+            return q;
+        });
+
+        quizData.courseName = courseName;
+        quizData.title = quizData.title || `${courseName} ${difficulty} Quiz`;
+        quizData.quizType = difficulty;
+
+        console.log(`✅ Quiz generated: ${quizData.questions.length} questions for ${courseName}`);
+
+        return quizData;
+
+    } catch (error) {
+        console.error('❌ Quiz Generation Failed:', error);
+        return generateFallbackQuiz(courseName, difficulty, questionCount, includeTypingQuestion);
+    }
+}
+
+/**
+ * Ensures quiz has the required number of questions
+ */
+function ensureQuestionCount(existingQuestions, courseName, difficulty, requiredCount) {
+    const questions = [...existingQuestions];
+    
+    while (questions.length < requiredCount) {
+        const index = questions.length + 1;
+        const isMCQ = index <= (requiredCount - 1);
+        
+        questions.push({
+            id: index,
+            text: isMCQ 
+                ? `Question ${index}: What is an important concept in ${courseName}?`
+                : `Explain a key topic you've learned in ${courseName}.`,
+            type: isMCQ ? 'MCQ' : 'ShortAnswer',
+            options: isMCQ ? ['Concept A', 'Concept B', 'Concept C', 'Concept D'] : [],
+            answer: isMCQ ? 'Concept A' : 'Student should provide detailed explanation.',
+            topic: courseName,
+            difficulty: difficulty === 'Mixed' ? ['Easy', 'Medium', 'Hard'][index % 3] : difficulty
+        });
+    }
+    
+    return questions;
+}
+
+/**
+ * Generates a fallback quiz if AI fails
  */
 function generateFallbackQuiz(courseName, difficulty, questionCount, includeTypingQuestion) {
+    console.log('⚠️ Generating fallback quiz...');
+    
     const mcqs = [];
     
+    const topics = [
+        'Fundamentals', 'Core Concepts', 'Advanced Topics', 
+        'Practical Applications', 'Theory', 'Problem Solving',
+        'Best Practices', 'Key Principles', 'Implementation', 'Analysis'
+    ];
+    
     for (let i = 1; i <= questionCount; i++) {
+        const topic = topics[i % topics.length];
         mcqs.push({
             id: i,
-            text: `Sample MCQ ${i} for ${courseName} (${difficulty} level)`,
+            text: `Which of the following best describes ${topic} in ${courseName}?`,
             type: 'MCQ',
-            options: ['Option A', 'Option B', 'Option C', 'Option D'],
-            answer: 'Option A',
-            topic: courseName,
-            difficulty: difficulty
+            options: [
+                `${topic} involves method A`,
+                `${topic} involves method B`,
+                `${topic} involves method C`,
+                `${topic} involves method D`
+            ],
+            answer: `${topic} involves method A`,
+            topic: topic,
+            difficulty: difficulty === 'Mixed' ? ['Easy', 'Medium', 'Hard'][i % 3] : difficulty
         });
     }
     
@@ -367,10 +510,10 @@ function generateFallbackQuiz(courseName, difficulty, questionCount, includeTypi
     if (includeTypingQuestion) {
         questions.push({
             id: questionCount + 1,
-            text: `Explain a key concept in ${courseName} that you've studied recently.`,
+            text: `Explain the most important concept you've studied in ${courseName} and how it applies in practice.`,
             type: 'ShortAnswer',
             options: [],
-            answer: 'Student should provide a detailed explanation of the concept.',
+            answer: 'Student should provide a comprehensive explanation covering key concepts, applications, and real-world relevance.',
             topic: courseName,
             difficulty: difficulty
         });
@@ -384,9 +527,9 @@ function generateFallbackQuiz(courseName, difficulty, questionCount, includeTypi
     };
 }
 
-// Export the function
+// Make sure this is exported
 module.exports = {
     generateExamPrediction,
     generateTopicSyllabus,
-    generateQuiz,  // ADD THIS EXPORT
+    generateQuiz,
 };
