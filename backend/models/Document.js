@@ -12,15 +12,21 @@ const documentSchema = new mongoose.Schema({
     },
     courseName: {
         type: String,
-        default: 'General' // Add this field to link documents to courses
+        default: 'Uncategorized'
     },
     summary: {
         type: String,
-        default: null
+        default: ''
     },
-    uploadedDate: {
+    uploadedAt: {
         type: Date,
         default: Date.now
+    },
+    fileSize: {
+        type: Number // in bytes
+    },
+    fileType: {
+        type: String // pdf, docx, txt
     }
 });
 

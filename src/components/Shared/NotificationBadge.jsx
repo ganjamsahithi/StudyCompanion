@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE_URL = 'http://localhost:5000/dashboard';
+const API_BASE_URL = 'http://localhost:8000/dashboard';
 
 // Helper function to check if two dates are the same day (ignoring time)
 const isToday = (dateString) => {
