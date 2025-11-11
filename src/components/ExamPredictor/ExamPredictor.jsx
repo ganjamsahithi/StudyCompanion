@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './ExamPredictor.css';
 import QuizHistoryAndGenerator from './QuizHistoryAndGenerator';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:8000';
 
 const formatDateDisplay = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
