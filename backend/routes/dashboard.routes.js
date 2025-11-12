@@ -15,20 +15,20 @@ try {
 } catch (error) {}
 
 /**
- * GET /stats - Get dashboard statistics (NO completion tracking)
+ * GET /stats - Get dashboard statistics
  */
 router.get('/stats', async (req, res) => {
   try {
     console.log('📊 Dashboard stats requested');
     
     const now = new Date();
-    const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
 
     // Initialize all metrics
     let totalTasks = 0;
     let overdueTasks = 0;
     let totalDocuments = 0;
-    let upcomingDeadlines = [];
+    let summarizedDocuments = 0;
+    let upcomingTasks = [];
     let upcomingExams = [];
 
     // ===== FETCH TASKS =====
@@ -42,15 +42,15 @@ router.get('/stats', async (req, res) => {
         const overdue = allTasks.filter(t => new Date(t.dueDate) < now);
         overdueTasks = overdue.length;
 
-        // Get all upcoming tasks (next 7 days)
-        const allUpcoming = allTasks
-          .filter(t => new Date(t.dueDate) >= now && new Date(t.dueDate) <= sevenDaysFromNow)
+        // Get all future tasks sorted by date
+        const allFutureTasks = allTasks
+          .filter(t => new Date(t.dueDate) >= now)
           .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
         // Separate exams from other tasks
-        upcomingExams = allUpcoming
+        upcomingExams = allFutureTasks
           .filter(t => t.taskType === 'Exam')
-          .slice(0, 10)
+          .slice(0, 20)
           .map(task => {
             const daysUntil = Math.ceil((new Date(task.dueDate) - now) / (1000 * 60 * 60 * 24));
             return {
@@ -63,10 +63,10 @@ router.get('/stats', async (req, res) => {
             };
           });
 
-        // All non-exam upcoming tasks for "Upcoming Deadlines" section
-        upcomingDeadlines = allUpcoming
+        // All non-exam upcoming tasks
+        upcomingTasks = allFutureTasks
           .filter(t => t.taskType !== 'Exam')
-          .slice(0, 10)
+          .slice(0, 20)
           .map(task => {
             const daysUntil = Math.ceil((new Date(task.dueDate) - now) / (1000 * 60 * 60 * 24));
             return {
@@ -79,7 +79,7 @@ router.get('/stats', async (req, res) => {
             };
           });
 
-        console.log(`✓ Tasks - Total: ${totalTasks}, Overdue: ${overdueTasks}`);
+        console.log(`✓ Tasks - Total: ${totalTasks}, Overdue: ${overdueTasks}, Upcoming: ${upcomingTasks.length}`);
 
       } catch (err) {
         console.error('✗ Error fetching tasks:', err.message);
@@ -91,7 +91,11 @@ router.get('/stats', async (req, res) => {
       try {
         const allDocs = await Document.find().lean();
         totalDocuments = allDocs.length;
-        console.log(`✓ Documents - Total: ${totalDocuments}`);
+        
+        // Count documents with summaries
+        summarizedDocuments = allDocs.filter(doc => doc.summary && doc.summary.trim().length > 0).length;
+        
+        console.log(`✓ Documents - Total: ${totalDocuments}, Summarized: ${summarizedDocuments}`);
       } catch (err) {
         console.error('✗ Error fetching documents:', err.message);
       }
@@ -122,7 +126,7 @@ router.get('/stats', async (req, res) => {
       });
     }
 
-    // ===== SEND RESPONSE (NO completion data) =====
+    // ===== SEND RESPONSE =====
     const responseData = {
       success: true,
       data: {
@@ -130,10 +134,11 @@ router.get('/stats', async (req, res) => {
         metrics: {
           totalTasks,
           overdueTasks,
-          totalDocuments
+          totalDocuments,
+          summarizedDocuments
         },
         highPriorityAlerts,
-        upcomingDeadlines,    // All non-exam tasks
+        upcomingTasks,        // All non-exam tasks
         upcomingExams,        // Only exams
         wellnessProfile: {
           conceptsReviewed: 0,

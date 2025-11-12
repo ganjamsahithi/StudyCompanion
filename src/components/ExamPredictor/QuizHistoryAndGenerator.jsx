@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import QuizInterface from '../Quiz/QuizInterface';
 import '../Quiz/Quiz.css';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:5000';
 
 const QuizHistoryAndGenerator = ({ courseName, examPrediction, onQuizComplete }) => {
     const [quizHistory, setQuizHistory] = useState([]);

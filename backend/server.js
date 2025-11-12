@@ -1,166 +1,185 @@
-// // backend/server.js
-// const express = require('express');
-// const cors = require('cors');
-// const mongoose = require('mongoose');
-// require('dotenv').config();
-
-
-// const app = express();
-// const port = process.env.PORT || 5000;
-
-// // Middleware
-// app.use(cors());
-// app.use(express.json());
-
-// // MongoDB Connection
-// const uri = process.env.MONGODB_URI;
-// mongoose.connect(uri)
-//   .then(() => console.log('MongoDB connection established successfully.'))
-//   .catch(err => console.log('MongoDB connection error: ' + err));
-
-// // --- Route Imports ---
-// const tasksRouter = require('./routes/tasks');
-// const documentsRouter = require('./routes/documents');
-// const chatRouter = require('./routes/chat');
-// const dashboardRouter = require('./routes/dashboard');
-// const examRouter = require('./routes/exam');
-// const quizRoutes = require('./routes/quiz');
-// const settingsRouter = require('./routes/settings'); // <--- NEW IMPORT
-
-// // Load Mongoose models (ensures models are defined)
-// require('./models/chatThread.model');
-// require('./models/document.model');
-// require('./models/task.model');
-
-// // --- Route Usage ---
-// app.use('/quiz', quizRoutes);
-// app.use('/tasks', tasksRouter);
-// app.use('/documents', documentsRouter);
-// app.use('/chat', chatRouter);
-// app.use('/dashboard', dashboardRouter);
-// app.use('/exam', examRouter);
-// app.use('/settings', settingsRouter); // <--- NEW ROUTE USAGE
-
-// // Define a default route
-// app.get('/', (req, res) => {
-//   res.send('Backend is running!');
-// });
-
-// // Start the server
-// app.listen(port, () => {
-//   console.log(`Server is running on port: ${port}`);
-// });
-
 // backend/server.js
-// COPY THIS ENTIRE FILE - This version handles dashboard correctly
+/**
+ * Complete server entry for StudyCompanion backend.
+ * - Minimal, explicit, and robust setup
+ * - Mounts routes: tasks, documents, chat, dashboard, exam, quiz, settings (if present)
+ *
+ * If you have route files with slightly different names, update the 'require' paths below.
+ */
 
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 5000;
 
-// =====================
-// MIDDLEWARE
-// =====================
+// -----------------------
+// Middleware
+// -----------------------
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// =====================
-// DATABASE
-// =====================
-const uri = process.env.MONGODB_URI;
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connection established successfully.'))
-  .catch(err => console.log('MongoDB connection error: ' + err));
+// Serve uploads directory (so summarized files, previews, etc. can be accessed if needed)
+const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsPath));
 
-// --- Route Imports ---
-const tasksRouter = require('./routes/tasks');
-const documentsRouter = require('./routes/documents'); 
-const chatRouter = require('./routes/chat');         
+// -----------------------
+// Database connection
+// -----------------------
+const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/studycompanion';
+mongoose.connect(mongoUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connection established successfully.'))
+.catch(err => {
+  console.error('MongoDB connection error:', err && err.message ? err.message : err);
+});
 
-// Load Chat Thread model to ensure it's defined before routing
-require('./models/chatThread.model'); 
+// -----------------------
+// Load models (ensure they're registered)
+// -----------------------
+try {
+  require('./models/document.model');
+} catch (e) { /* ignore if model file not present yet */ }
 
-// --- Route Usage ---
-app.use('/tasks', tasksRouter);
-app.use('/documents', documentsRouter); 
-app.use('/chat', chatRouter);         
+try {
+  require('./models/task.model');
+} catch (e) { /* ignore if model file not present yet */ }
 
-// Define a default route
+try {
+  require('./models/chatThread.model');
+} catch (e) { /* ignore if model file not present yet */ }
+
+// -----------------------
+// Route imports (safe)
+// -----------------------
+function safeRequire(routePath, friendlyName) {
+  try {
+    return require(routePath);
+  } catch (err) {
+    console.warn(`Warning: could not load ${friendlyName} at "${routePath}". If you need this route, create that file. Error: ${err.message}`);
+    return null;
+  }
+}
+
+const tasksRouter = safeRequire('./routes/tasks', 'tasks router');
+const documentsRouter = safeRequire('./routes/documents', 'documents router');
+const chatRouter = safeRequire('./routes/chat', 'chat router');
+
+// Dashboard router naming can vary in different repos; try common names
+let dashboardRouter = safeRequire('./routes/dashboard', 'dashboard router (./routes/dashboard)');
+if (!dashboardRouter) dashboardRouter = safeRequire('./routes/dashboard.routes', 'dashboard router (./routes/dashboard.routes)');
+
+const examRouter = safeRequire('./routes/exam', 'exam router');
+const quizRouter = safeRequire('./routes/quiz', 'quiz router');
+const settingsRouter = safeRequire('./routes/settings', 'settings router');
+
+// -----------------------
+// Mount routes (only if present)
+// -----------------------
+if (tasksRouter) app.use('/tasks', tasksRouter);
+if (documentsRouter) app.use('/documents', documentsRouter);
+if (chatRouter) app.use('/chat', chatRouter);
+
+// Mount dashboard both as /dashboard and /api/dashboard if available
+if (dashboardRouter) {
+  app.use('/dashboard', dashboardRouter);
+  app.use('/api/dashboard', dashboardRouter);
+}
+
+if (examRouter) app.use('/exam', examRouter);
+if (quizRouter) app.use('/quiz', quizRouter);
+if (settingsRouter) app.use('/settings', settingsRouter);
+
+// -----------------------
+// Default root and simple health endpoints
+// -----------------------
 app.get('/', (req, res) => {
   res.json({
-    message: 'Agent Compass Backend is running',
-    port: port,
+    message: 'StudyCompanion backend is running',
+    env: process.env.NODE_ENV || 'development',
+    port,
     routes: {
-      dashboard: '/api/dashboard/stats',
-      tasks: '/api/tasks',
-      documents: '/api/documents',
-      chat: '/api/chat',
-      quiz: '/api/quiz',
-      exam: '/api/exam'
+      documents: '/documents',
+      tasks: '/tasks',
+      chat: '/chat',
+      dashboard: '/dashboard',
+      exam: '/exam',
+      quiz: '/quiz'
     }
   });
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// =====================
-// 404 HANDLER
-// =====================
+// -----------------------
+// 404 handler (last non-error middleware)
+// -----------------------
 app.use((req, res) => {
-  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`404 - Not Found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
     message: 'Route not found',
     requested: req.originalUrl,
-    availableRoutes: [
-      '/api/dashboard/stats',
-      '/api/tasks',
-      '/api/documents',
-      '/api/chat',
-      '/api/quiz',
-      '/api/exam'
-    ]
   });
 });
 
-// =====================
-// ERROR HANDLER
-// =====================
+// -----------------------
+// Error handler
+// -----------------------
 app.use((err, req, res, next) => {
-  console.error('❌ Server error:', err.message);
-  res.status(500).json({
+  console.error('❌ Unhandled server error:', err && err.stack ? err.stack : err);
+  res.status(err.status || 500).json({
     success: false,
-    message: 'Internal server error',
-    error: err.message
+    message: err.message || 'Internal server error',
+    // include stack in non-production for debugging
+    ...(process.env.NODE_ENV !== 'production' ? { stack: err.stack } : {}),
   });
 });
 
-// =====================
-// START SERVER
-// =====================
+// -----------------------
+// Start server
+// -----------------------
 const server = app.listen(port, () => {
-  console.log(`
-╔════════════════════════════════════════╗
-║     ✓ Server Running Successfully      ║
-║     Base URL: http://localhost:${port}     ║
-║     Ready to accept requests           ║
-╚════════════════════════════════════════╝
-  `);
+  console.log(`\nServer started at http://localhost:${port} (NODE_ENV=${process.env.NODE_ENV || 'development'})`);
+  console.log('Mounted routes:');
+  if (tasksRouter) console.log(' - /tasks');
+  if (documentsRouter) console.log(' - /documents');
+  if (chatRouter) console.log(' - /chat');
+  if (dashboardRouter) console.log(' - /dashboard  and /api/dashboard');
+  if (examRouter) console.log(' - /exam');
+  if (quizRouter) console.log(' - /quiz');
+  if (settingsRouter) console.log(' - /settings');
+  console.log('');
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('\n⚠️  SIGTERM received, shutting down...');
+function gracefulShutdown() {
+  console.log('Received shutdown signal, closing server...');
   server.close(() => {
-    console.log('✓ Server closed');
-    process.exit(0);
+    console.log('HTTP server closed.');
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB connection closed.');
+      process.exit(0);
+    });
   });
-});
-EOF
+
+  // Force exit if still not closed after 10s
+  setTimeout(() => {
+    console.warn('Forcing shutdown.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// Export app for testing if needed
+module.exports = app;

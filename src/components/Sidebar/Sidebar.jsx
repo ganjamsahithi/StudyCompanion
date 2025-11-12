@@ -33,9 +33,9 @@ const Sidebar = ({ setActiveSection, activeSection, setIsModalOpen }) => {
       </nav>
       <div className="quick-actions">
         <h4>Quick Actions</h4>
-        <button className="action-btn upload">Upload Notes</button>
+        {/* <button className="action-btn upload">Upload Notes</button> */}
         {/* Button to open the Quick Add Modal */}
-        <button className="action-btn add-task" onClick={() => setIsModalOpen(true)}>Quick Add</button> 
+        {/* <button className="action-btn add-task" onClick={() => setIsModalOpen(true)}>Quick Add</button>  */}
         <button className="action-btn ask-agent" onClick={() => setActiveSection('chat')}>Ask Agent</button>
       </div>
     </div>

@@ -19,7 +19,7 @@ const Dashboard = () => {
       
       const token = localStorage.getItem('token');
       
-      const response = await axios.get('http://localhost:8000/api/dashboard/stats', {
+      const response = await axios.get('http://localhost:5000/api/dashboard/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -36,12 +36,12 @@ const Dashboard = () => {
           metrics: {
             totalTasks: data.metrics?.totalTasks || 0,
             overdueTasks: data.metrics?.overdueTasks || 0,
-            totalDocuments: data.metrics?.totalDocuments || 0
+            totalDocuments: data.metrics?.totalDocuments || 0,
+            summarizedDocuments: data.metrics?.summarizedDocuments || 0
           },
           alerts: data.highPriorityAlerts || [],
-          upcomingDeadlines: data.upcomingDeadlines || [],
-          upcomingExams: data.upcomingExams || [],
-          examPredictions: data.examPredictions || []
+          upcomingTasks: data.upcomingTasks || [],
+          upcomingExams: data.upcomingExams || []
         });
       }
     } catch (err) {
@@ -103,7 +103,7 @@ const Dashboard = () => {
       <div className="dashboard-header">
         <div className="header-left">
           <h1>Dashboard Overview</h1>
-          <p className="header-subtitle">Track your academic progress and stay on top of deadlines</p>
+          <p className="header-subtitle">Track your academic progress and manage deadlines</p>
         </div>
         <button onClick={fetchDashboardData} className="refresh-btn">
           <i className="fas fa-sync-alt"></i> Refresh
@@ -114,8 +114,8 @@ const Dashboard = () => {
       {stats?.workloadScore !== undefined && (
         <div className="workload-banner" style={{ borderLeftColor: workloadLevel.color }}>
           <div className="workload-info">
-            <h3>Current Workload: {workloadLevel.level}</h3>
-            <p>You have {stats.metrics.pendingTasks} pending tasks • {stats.metrics.completedTasks} completed</p>
+            <h3>Current Workload: <span className="workload-level">{workloadLevel.level}</span></h3>
+            <p>You have <strong>{stats.metrics.totalTasks}</strong> total tasks • <strong>{stats.metrics.overdueTasks}</strong> overdue</p>
           </div>
           <div className="workload-gauge">
             <div className="gauge-circle" style={{ background: `conic-gradient(${workloadLevel.color} 0deg ${(stats.workloadScore / 100) * 360}deg, #e0e0e0 ${(stats.workloadScore / 100) * 360}deg)` }}>
@@ -130,7 +130,7 @@ const Dashboard = () => {
       {/* High Priority Alerts */}
       {stats?.alerts && stats.alerts.length > 0 && (
         <div className="alerts-section">
-          <h3>⚠️ High Priority Alerts</h3>
+          <h3><i className="fas fa-exclamation-circle"></i> High Priority Alerts</h3>
           <div className="alerts-list">
             {stats.alerts.map((alert, index) => (
               <div key={index} className={`alert alert-${alert.severity}`}>
@@ -141,38 +141,49 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Statistics Cards */}
-      <div className="stats-grid">
-        <div className="stat-card tasks-card">
+      {/* Quick Glimpse Stats */}
+      <div className="quick-stats-section">
+        <div className="quick-stat-item materials">
+          <div className="stat-icon">
+            <i className="fas fa-book"></i>
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Materials</p>
+            <p className="stat-number">{stats?.metrics?.totalDocuments || 0}</p>
+            <p className="stat-sublabel">Documents uploaded</p>
+          </div>
+        </div>
+
+        <div className="quick-stat-item due-tasks">
           <div className="stat-icon">
             <i className="fas fa-tasks"></i>
           </div>
-          <div className="stat-content">
-            <h3>Total Tasks</h3>
+          <div className="stat-info">
+            <p className="stat-label">Due Tasks</p>
             <p className="stat-number">{stats?.metrics?.totalTasks || 0}</p>
-            <span className="stat-label">All deadlines</span>
+            <p className="stat-sublabel">All deadlines</p>
           </div>
         </div>
 
-        <div className="stat-card overdue-card">
+        <div className="quick-stat-item notes">
           <div className="stat-icon">
-            <i className="fas fa-exclamation-triangle"></i>
+            <i className="fas fa-sticky-note"></i>
           </div>
-          <div className="stat-content">
-            <h3>Overdue Tasks</h3>
+          <div className="stat-info">
+            <p className="stat-label">Notes</p>
+            <p className="stat-number">{stats?.metrics?.summarizedDocuments || 0}</p>
+            <p className="stat-sublabel">Summarized</p>
+          </div>
+        </div>
+
+        <div className="quick-stat-item overdue">
+          <div className="stat-icon">
+            <i className="fas fa-exclamation"></i>
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Overdue</p>
             <p className="stat-number">{stats?.metrics?.overdueTasks || 0}</p>
-            <span className="stat-label">Requires attention</span>
-          </div>
-        </div>
-
-        <div className="stat-card notes-card">
-          <div className="stat-icon">
-            <i className="fas fa-file-alt"></i>
-          </div>
-          <div className="stat-content">
-            <h3>My Notes</h3>
-            <p className="stat-number">{stats?.metrics?.totalDocuments || 0}</p>
-            <span className="stat-label">Documents uploaded</span>
+            <p className="stat-sublabel">Need attention</p>
           </div>
         </div>
       </div>
@@ -180,35 +191,34 @@ const Dashboard = () => {
       {/* Main Content Grid */}
       <div className="dashboard-content-grid">
         
-        {/* Upcoming Deadlines - All task types except Exams */}
-        <div className="dashboard-card upcoming-deadlines">
+        {/* Upcoming Tasks - All non-exam tasks */}
+        <div className="dashboard-card upcoming-tasks">
           <div className="card-header">
             <h2>
-              <i className="fas fa-calendar-alt"></i>
-              Upcoming Deadlines
+              <i className="fas fa-calendar-check"></i>
+              Upcoming Tasks
             </h2>
-            <span className="deadline-count">{stats?.upcomingDeadlines?.length || 0}</span>
+            <span className="task-count">{stats?.upcomingTasks?.length || 0}</span>
           </div>
           <div className="card-content">
-            {stats?.upcomingDeadlines && stats.upcomingDeadlines.length > 0 ? (
-              <ul className="deadline-list">
-                {stats.upcomingDeadlines.map((task, index) => (
-                  <li key={index} className="deadline-item">
-                    <div className="deadline-info">
+            {stats?.upcomingTasks && stats.upcomingTasks.length > 0 ? (
+              <ul className="task-list">
+                {stats.upcomingTasks.map((task, index) => (
+                  <li key={index} className="task-item">
+                    <div className="task-left">
                       <span 
-                        className="task-type-badge" 
+                        className="task-badge" 
                         style={{ backgroundColor: getTaskTypeColor(task.taskType) }}
                       >
                         {task.taskType}
                       </span>
                       <div className="task-details">
                         <h4>{task.taskName}</h4>
-                        <p className="course-name">{task.courseName}</p>
+                        <p className="course-code">{task.courseName}</p>
                       </div>
                     </div>
-                    <div className="deadline-date">
-                      <i className="fas fa-clock"></i>
-                      <span>{task.daysUntil} day{task.daysUntil !== 1 ? 's' : ''}</span>
+                    <div className="task-right">
+                      <span className="days-badge">{task.daysUntil}d</span>
                     </div>
                   </li>
                 ))}
@@ -216,7 +226,7 @@ const Dashboard = () => {
             ) : (
               <div className="empty-state">
                 <i className="fas fa-check-circle"></i>
-                <p>No upcoming deadlines</p>
+                <p>No upcoming tasks</p>
               </div>
             )}
           </div>
@@ -236,12 +246,15 @@ const Dashboard = () => {
               <ul className="exam-list">
                 {stats.upcomingExams.map((exam, index) => (
                   <li key={index} className="exam-item">
-                    <div className="exam-info">
-                      <h4>{exam.courseName}</h4>
-                      <p className="exam-task">{exam.taskName}</p>
+                    <div className="exam-left">
+                      <span className="exam-badge">EXAM</span>
+                      <div className="exam-details">
+                        <h4>{exam.courseName}</h4>
+                        <p className="exam-name">{exam.taskName}</p>
+                      </div>
                     </div>
-                    <div className="exam-days">
-                      <span className="badge">{exam.daysUntil}d</span>
+                    <div className="exam-right">
+                      <span className="exam-days">{exam.daysUntil}d</span>
                     </div>
                   </li>
                 ))}

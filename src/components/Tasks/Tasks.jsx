@@ -1,10 +1,11 @@
-// src/components/Tasks/Tasks.jsx
 import React, { useState, useEffect, useCallback } from 'react';
+// Import useLocation to read the state passed from Sidebar
+import { useLocation } from 'react-router-dom'; 
 import './Tasks.css';
 
-const API_BASE_URL = 'http://localhost:8000/tasks';
+const API_BASE_URL = 'http://localhost:5000/tasks';
 
-// Helper to format date for display (DD/MM/YYYY HH:MM AM/PM)
+// --- Helper Functions (Unchanged) ---
 const formatDateDisplay = (dateString) => {
     const date = new Date(dateString);
     if (isNaN(date)) return 'Invalid Date';
@@ -28,7 +29,6 @@ const formatDateDisplay = (dateString) => {
     return `${day}/${month}/${year}, ${hoursStr}:${minutes} ${ampm}`;
 };
 
-// Helper to get today's date in YYYY-MM-DD
 const getTodayDate = () => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -37,7 +37,6 @@ const getTodayDate = () => {
     return `${yyyy}-${mm}-${dd}`;
 };
 
-// Helper to get current time in HH:MM format (24-hour)
 const getCurrentTime = () => {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
@@ -45,35 +44,27 @@ const getCurrentTime = () => {
     return `${hours}:${minutes}`;
 };
 
-// Helper to convert 12-hour to 24-hour format
 const convertTo24Hour = (timeStr, amPm) => {
     let [hours, minutes] = timeStr.split(':').map(Number);
     
-    if (amPm === 'PM' && hours !== 12) {
+    if (amPm === 'AM' && hours !== 12) {
         hours += 12;
-    } else if (amPm === 'AM' && hours === 12) {
+    } else if (amPm === 'PM' && hours === 12) {
         hours = 0;
     }
     
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 };
 
-// Helper to create ISO string - FIXED to use local time
 const createISODateTime = (dateStr, timeStr24Hour) => {
-    // dateStr is YYYY-MM-DD
-    // timeStr24Hour is HH:MM in 24-hour format
-    
     const [year, month, day] = dateStr.split('-').map(Number);
     const [hours, minutes] = timeStr24Hour.split(':').map(Number);
     
-    // Create date in local timezone
     const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
     
-    // Convert to ISO string
     return date.toISOString();
 };
 
-// Helper to check if time is in the past
 const isTimeInPast = (dateStr, timeStr24Hour) => {
     const now = new Date();
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -84,63 +75,33 @@ const isTimeInPast = (dateStr, timeStr24Hour) => {
     return selectedDate < now;
 };
 
-const Tasks = () => {
-    const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    
-    // Form States
+
+// --- Add Task Modal Component ---
+const AddTaskModal = ({ onAddTask, onClose, error, setError }) => {
     const [newTaskName, setNewTaskName] = useState('');
     const [newDueDate, setNewDueDate] = useState(getTodayDate());
     const [newTime, setNewTime] = useState(getCurrentTime());
-    const [newAmPm, setNewAmPm] = useState('PM');
+    const [newAmPm, setNewAmPm] = useState('AM');
     const [newType, setNewType] = useState('Assignment');
     const [newCourseName, setNewCourseName] = useState('');
-
+    
     const taskTypes = ['Assignment', 'Exam', 'Project', 'Reading', 'Review'];
     const today = getTodayDate();
 
-    // --- API Fetching ---
-    const fetchTasks = useCallback(async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const response = await fetch(API_BASE_URL + '/');
-            if (!response.ok) throw new Error('Failed to fetch tasks from server.');
-            
-            const data = await response.json();
-            setTasks(data);
-        } catch (err) {
-            setError(`Error loading tasks: ${err.message}`);
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchTasks();
-    }, [fetchTasks]);
-
-    // --- Add Task Handler ---
-    const handleAddTask = async () => {
+    const handleSubmit = () => {
+        // Validation logic
         if (newTaskName.trim() === '' || !newDueDate || newCourseName.trim() === '') {
             setError('Please fill in the task name, course, and due date.');
             return;
         }
 
-        // Convert 12-hour to 24-hour first
         const time24Hour = convertTo24Hour(newTime, newAmPm);
-
-        // Check if time is in the past
         if (isTimeInPast(newDueDate, time24Hour)) {
             setError('Please select a future date and time.');
             return;
         }
 
         setError('');
-        
-        // Create ISO string with correct local time
         const isoDueDate = createISODateTime(newDueDate, time24Hour);
 
         const taskData = {
@@ -149,67 +110,18 @@ const Tasks = () => {
             taskType: newType,
             dueDate: isoDueDate,
         };
-
-        console.log('Sending task data:', taskData);
-
-        try {
-            const response = await fetch(API_BASE_URL + '/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(taskData),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to add task.');
-            }
-
-            // Reset form
-            setNewTaskName('');
-            setNewCourseName('');
-            setNewDueDate(getTodayDate());
-            setNewTime(getCurrentTime());
-            setNewAmPm('PM');
-            setNewType('Assignment');
-            
-            // Refresh tasks
-            fetchTasks();
-
-        } catch (err) {
-            setError(`Error adding task: ${err.message}`);
-            console.error(err);
-        }
-    };
-
-    // --- Delete Task Handler ---
-    const handleDeleteTask = async (id) => {
-        if (window.confirm('Are you sure you want to delete this task?')) {
-            try {
-                const response = await fetch(API_BASE_URL + `/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete task.');
-                }
-
-                setTasks(prev => prev.filter(t => t._id !== id));
-                setError('');
-
-            } catch (err) {
-                setError(`Error deleting task: ${err.message}`);
-                console.error(err);
-            }
-        }
+        
+        // Pass data up to the parent and reset form
+        onAddTask(taskData);
+        // Modal closes in parent component after fetch success/failure
     };
 
     return (
-        <div className="tasks-container">
-            <h2>Your Academic Tasks</h2>
-
-            {error && <div className="error-message">{error}</div>}
-
-            <div className="add-task-section card">
-                <h4>Add New Deadline</h4>
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="add-task-modal" onClick={e => e.stopPropagation()}>
+                <h3>Quick Add New Deadline</h3>
+                
+                {/* Re-using the existing input structure */}
                 <div className="task-input-group">
                     <select value={newType} onChange={(e) => setNewType(e.target.value)}>
                         {taskTypes.map(type => (
@@ -244,15 +156,161 @@ const Tasks = () => {
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
                     </select>
-                    <button onClick={handleAddTask}>Add Deadline</button>
+                    <div className="modal-actions">
+                         <button className="add-btn" onClick={handleSubmit}>Add Deadline</button>
+                         <button className="cancel-btn" onClick={onClose}>Cancel</button>
+                    </div>
                 </div>
             </div>
+        </div>
+    );
+};
 
+
+const Tasks = () => {
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    
+    // --- QUICK ACTION & MODAL STATES ---
+    const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+    const [deleteModal, setDeleteModal] = useState(null); // {id, taskName}
+    const location = useLocation();
+
+    // --- API Fetching (Wrapped in useCallback) ---
+    const fetchTasks = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await fetch(API_BASE_URL + '/');
+            if (!response.ok) throw new Error('Failed to fetch tasks from server.');
+            
+            const data = await response.json();
+            // Sort tasks by due date ascending
+            const sortedData = data.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            setTasks(sortedData);
+        } catch (err) {
+            setError(`Error loading tasks: ${err.message}`);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, []); 
+
+    // Fetch tasks on mount (using stable fetchTasks)
+    useEffect(() => {
+        fetchTasks();
+    }, [fetchTasks]); 
+
+    // --- QUICK ACTION EFFECT ---
+    useEffect(() => {
+        // Check if the navigation state dictates opening the Quick Add modal
+        if (location.state && location.state.openModal === 'addTask') {
+            setIsAddTaskModalOpen(true);
+            // Clear the state so the modal doesn't reopen on future component updates
+            window.history.replaceState({}, document.title, location.pathname);
+        }
+    }, [location.state, location.pathname]);
+
+
+    // --- Add Task Handler ---
+    const handleAddTask = async (taskData) => {
+        // Clear any previous error messages
+        setError('');
+        
+        try {
+            const response = await fetch(API_BASE_URL + '/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to add task.');
+            }
+
+            // Close the modal and refresh tasks
+            setIsAddTaskModalOpen(false);
+            fetchTasks();
+
+        } catch (err) {
+            setError(`Error adding task: ${err.message}`);
+            console.error(err);
+        }
+    };
+
+    // --- Delete Task Handler ---
+    const handleDeleteTask = async () => {
+        if (!deleteModal || !deleteModal.id) return;
+        
+        const id = deleteModal.id;
+        setDeleteModal(null); // Close modal immediately
+
+        try {
+            const response = await fetch(API_BASE_URL + `/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete task.');
+            }
+
+            setTasks(prev => prev.filter(t => t._id !== id));
+            setError('');
+
+        } catch (err) {
+            setError(`Error deleting task: ${err.message}`);
+            console.error(err);
+        }
+    };
+
+    return (
+        <div className="tasks-container">
+            <h2>Your Academic Tasks</h2>
+
+            {error && <div className="error-message">{error}</div>}
+
+            {/* Manual button to open the modal */}
+            <button 
+                className="manual-add-btn"
+                onClick={() => setIsAddTaskModalOpen(true)}
+                style={{marginBottom: '1rem', padding: '0.75rem 1.5rem'}}
+            >
+                + Add New Deadline
+            </button>
+            
+            {/* 1. RENDER ADD TASK MODAL (for Quick Add or manual click) */}
+            {isAddTaskModalOpen && (
+                <AddTaskModal 
+                    onAddTask={handleAddTask} 
+                    onClose={() => setIsAddTaskModalOpen(false)}
+                    error={error}
+                    setError={setError}
+                />
+            )}
+
+            {/* 2. RENDER DELETE CONFIRMATION MODAL (REPLACEMENT FOR window.confirm) */}
+            {deleteModal && (
+                <div className="delete-modal-overlay" onClick={() => setDeleteModal(null)}>
+                    <div className="delete-modal" onClick={e => e.stopPropagation()}>
+                        <h3>Confirm Deletion</h3>
+                        <p>Are you sure you want to permanently delete: <strong>{deleteModal.taskName}</strong>?</p>
+                        <div className="modal-actions">
+                            <button className="cancel-btn" onClick={() => setDeleteModal(null)}>Cancel</button>
+                            <button className="confirm-delete-btn" onClick={handleDeleteTask}>Yes, Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* --- Task List Rendering --- */}
             <div className="task-list card">
                 <h4>My To-Do List</h4>
                 {loading && <p>Loading...</p>}
                 {!loading && tasks.length === 0 ? (
-                    <p className="empty-state">No tasks yet! Add one above.</p>
+                    <p className="empty-state">No tasks yet! Click "Add New Deadline" above.</p>
                 ) : (
                     <ul>
                         {tasks.map(task => (
@@ -280,7 +338,7 @@ const Tasks = () => {
                                         <span className="due-date">Due: {formatDateDisplay(task.dueDate)}</span>
                                         <button 
                                             className="delete-btn"
-                                            onClick={() => handleDeleteTask(task._id)}
+                                            onClick={() => setDeleteModal({ id: task._id, taskName: task.taskName })}
                                             title="Delete task"
                                         >
                                             ✕

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './Chat.css';
 
-const API_BASE_URL = 'http://localhost:8000/chat';
+const API_BASE_URL = 'http://localhost:5000/chat';
 
 // --- Helper Function: Markdown to HTML Conversion ---
 const markdownToHtml = (markdown) => {
@@ -69,10 +69,17 @@ const Chat = () => {
         setLoadingThreads(true);
         try {
             const response = await fetch(API_BASE_URL + '/threads');
+            if (!response.ok) {
+                console.warn('Failed to fetch threads, using empty array');
+                setThreads([]);
+                return;
+            }
             const data = await response.json();
-            setThreads(data);
+            // Ensure data is always an array
+            setThreads(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching threads:', error);
+            setThreads([]); // Set to empty array on error
         } finally {
             setLoadingThreads(false);
         }

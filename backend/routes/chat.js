@@ -7,14 +7,37 @@
 const router = require('express').Router();
 const { GoogleGenAI } = require('@google/genai');
 
-
 const ChatThread = require('../models/chatThread.model');
+const Document = require('../models/document.model');
 const aiService = require('../services/ai.service'); 
 const ai = new GoogleGenAI({}); 
 
-const systemInstruction = `You are Agent Compass, a helpful, encouraging, and highly knowledgeable academic assistant designed for college students.
+const getSystemInstruction = async () => {
+    // Fetch all documents with summaries to include in context
+    try {
+        const documents = await Document.find({ summary: { $ne: null } })
+            .select('fileName courseName summary')
+            .limit(20); // Limit to prevent too much context
+        
+        let documentsContext = '';
+        if (documents.length > 0) {
+            documentsContext = '\n\n**Available Course Materials:**\n';
+            documents.forEach((doc, idx) => {
+                documentsContext += `${idx + 1}. **${doc.fileName}** (${doc.courseName || 'General'}): ${doc.summary.substring(0, 200)}...\n`;
+            });
+            documentsContext += '\nYou can reference these materials when answering questions.';
+        }
+        
+        return `You are Agent Compass, a helpful, encouraging, and highly knowledgeable academic assistant designed for college students.
+Your responses should be clear, detailed, and directly answer course-related questions.
+Use Markdown formatting (like **bold** and lists) for structure and emphasis. Encourage the student to keep studying!${documentsContext}`;
+    } catch (error) {
+        console.error('Error fetching documents for chat context:', error);
+        return `You are Agent Compass, a helpful, encouraging, and highly knowledgeable academic assistant designed for college students.
 Your responses should be clear, detailed, and directly answer course-related questions.
 Use Markdown formatting (like **bold** and lists) for structure and emphasis. Encourage the student to keep studying!`;
+    }
+};
 
 
 // GET /chat/threads - List all chat threads for the current user
@@ -76,24 +99,30 @@ router.route('/send').post(async (req, res) => {
         // 2. Add User Message
         thread.messages.push({ sender: 'user', text: message });
 
-        // 3. Prepare History and Call the Gemini API
+        // 3. Get system instruction with document context
+        const systemInstructionWithContext = await getSystemInstruction();
+        
+        // 4. Prepare History and Call the Gemini API
         const contents = thread.messages.map(msg => ({
-            role: msg.sender,
+            role: msg.sender === 'user' ? 'user' : 'model',
             parts: [{ text: msg.text }]
         }));
         
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: contents,
-            config: { systemInstruction: { parts: [{ text: systemInstruction }] } }
+            config: { 
+                systemInstruction: { parts: [{ text: systemInstructionWithContext }] } 
+            }
         });
 
-        const agentResponse = response.text;
+        // Extract response text (handle different SDK response structures)
+        const agentResponse = response.text || (response.response && response.response.text) || 'I apologize, but I encountered an error generating a response.';
 
-        // 4. Add Agent Response and Save Thread
+        // 5. Add Agent Response and Save Thread
         thread.messages.push({ sender: 'model', text: agentResponse });
 
-        // 5. If new, generate and update the title
+        // 6. If new, generate and update the title
         if (newThreadCreated) {
             const newTitle = await aiService.generateChatTitle(firstUserMessage, agentResponse);
             thread.title = newTitle;

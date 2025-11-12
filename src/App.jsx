@@ -44,7 +44,7 @@ function App() {
             <Sidebar setActiveSection={setActiveSection} activeSection={activeSection} setIsModalOpen={setIsModalOpen} />
             <div className="main-content">
                 <header className="app-header">
-                    <h1>Agent Compass</h1>
+                    <h1>Study Companion</h1>
                     <div className="user-profile">
                         <span>Hi, Student!</span>
                         <span className="profile-icon">

@@ -82,15 +82,38 @@ router.route('/summarize/:id').post(async (req, res) => {
             return res.json({ message: 'Summary already generated.', summary: doc.summary });
         }
 
+        // Diagnostic log (minimal): which file path is being summarized
+        console.log(`📄 Summarize requested for doc id ${req.params.id}, filePath: ${doc.filePath}, fileName: ${doc.fileName}`);
+
+        // Check if file exists
+        if (!fs.existsSync(doc.filePath)) {
+            console.error(`❌ File not found at path: ${doc.filePath}`);
+            return res.status(404).json({ 
+                message: 'File not found on server. The file may have been deleted.', 
+                error: `File path: ${doc.filePath}` 
+            });
+        }
+
         const summaryText = await aiService.generateSummaryFromDocument(doc.filePath, doc.fileName);
+
+        if (!summaryText || summaryText.trim().length === 0) {
+            throw new Error('AI returned an empty summary. Please try again.');
+        }
 
         doc.summary = summaryText;
         await doc.save();
 
+        console.log(`✅ Summary generated successfully for ${doc.fileName}`);
         res.json({ message: 'Summary generated successfully.', summary: summaryText });
     } catch (error) {
-        console.error('AI Summarization Error:', error);
-        res.status(500).json({ message: 'Failed to generate summary.', error: error.message });
+        console.error('❌ AI Summarization Error:', error);
+        // Return detailed error message for debugging
+        const errorMessage = error.message || 'Unknown error occurred during summarization';
+        res.status(500).json({ 
+            message: 'Failed to generate summary.', 
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

@@ -1,111 +1,198 @@
+// src/components/ExamPredictor/QuizInterface.jsx
 import React, { useState } from 'react';
 import './Quiz.css';
 
-const sampleQuiz = {
-    title: "Data Structures: Graph Traversal Quick Quiz",
-    questions: [
-        { id: 1, text: "Which algorithm uses a stack to find the next vertex?", type: "MCQ", options: ["BFS", "DFS", "Dijkstra"], answer: "DFS" },
-        { id: 2, text: "True or False: BFS is generally better for finding the shortest path in an unweighted graph.", type: "TrueFalse", answer: "True" },
-        { id: 3, text: "Briefly explain the key difference in memory usage between BFS and DFS.", type: "ShortAnswer", answer: "BFS may require more memory to store pointers to sibling nodes, while DFS generally uses less memory because it only needs to store nodes on the current path." }
-    ]
-};
-
-const QuizInterface = ({ setActiveSection }) => {
-    const [currentQuiz, setCurrentQuiz] = useState(sampleQuiz);
+const QuizInterface = ({ currentQuiz, onSubmit, onBack }) => {
     const [answers, setAnswers] = useState({});
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [score, setScore] = useState(null);
+    const [results, setResults] = useState([]);
+
+    // Add null check for currentQuiz
+    if (!currentQuiz || !currentQuiz.questions || currentQuiz.questions.length === 0) {
+        return (
+            <div className="quiz-container">
+                <div className="error-message">
+                    <p>⚠️ No quiz questions available. Please try generating again.</p>
+                    <button onClick={onBack} className="back-btn">← Back to Dashboard</button>
+                </div>
+            </div>
+        );
+    }
 
     const handleAnswerChange = (id, value) => {
         setAnswers(prev => ({ ...prev, [id]: value }));
     };
 
     const handleSubmit = () => {
-        // --- Backend Simulation ---
         let correctAnswers = 0;
+        const attemptedQuestions = []; 
+
         currentQuiz.questions.forEach(q => {
-            if (q.type === 'MCQ' || q.type === 'TrueFalse') {
-                if (answers[q.id] === q.answer) {
-                    correctAnswers++;
-                }
+            let isCorrect = false;
+            let studentResponse = answers[q.id] || '[No Answer]';
+
+            if (q.type === 'MCQ') {
+                isCorrect = studentResponse === q.answer;
             } else if (q.type === 'ShortAnswer') {
-                // Simplified scoring: just checking if an answer was provided
-                if (answers[q.id] && answers[q.id].length > 5) {
-                    correctAnswers++; 
-                }
+                // For short answer, check if response has substantial content
+                isCorrect = studentResponse.trim().length >= 10;
             }
+            
+            if (isCorrect) {
+                correctAnswers++;
+            }
+            
+            attemptedQuestions.push({
+                questionText: q.text,
+                correctAnswer: q.answer,
+                studentAnswer: studentResponse,
+                isCorrect: isCorrect,
+                topic: q.topic || currentQuiz.courseName || 'General'
+            });
         });
         
         setScore(correctAnswers);
+        setResults(attemptedQuestions);
         setIsSubmitted(true);
-        // In a real application, you'd send answers to Python/LLM for advanced scoring
-        // and update the Learning Profile here.
+        
+        // Call the parent handler to save results to the backend database
+        onSubmit(currentQuiz.quizType, correctAnswers, currentQuiz.questions.length, attemptedQuestions);
     };
 
     if (isSubmitted) {
+        const percentage = Math.round((score / currentQuiz.questions.length) * 100);
+        const performanceLevel = percentage >= 70 ? 'excellent' : percentage >= 50 ? 'good' : 'needs-improvement';
+
         return (
             <div className="quiz-container">
                 <div className="quiz-results card">
-                    <h2>Quiz Results: {currentQuiz.title}</h2>
-                    <p className="final-score">
-                        You scored: **{score} / {currentQuiz.questions.length}**
-                    </p>
-                    <div className="feedback-section">
-                        <h3>Detailed Feedback</h3>
-                        {currentQuiz.questions.map(q => (
-                            <div key={q.id} className={`feedback-item ${answers[q.id] === q.answer ? 'correct' : 'incorrect'}`}>
-                                <p><strong>Q:</strong> {q.text}</p>
-                                <p><strong>Your Answer:</strong> {answers[q.id] || '[No Answer]'}</p>
-                                <p><strong>Correct Answer:</strong> {q.answer}</p>
-                                {/* In a real app, the backend provides detailed rationale */}
-                                {answers[q.id] !== q.answer && <p className="rationale">Rationale: Misunderstanding of queue/stack usage.</p>}
-                            </div>
-                        ))}
+                    <h2>🎉 Quiz Results: {currentQuiz.title}</h2>
+                    
+                    <div className={`final-score-card ${performanceLevel}`}>
+                        <div className="score-circle">
+                            <span className="score-number">{percentage}%</span>
+                            <span className="score-label">Score</span>
+                        </div>
+                        <div className="score-details">
+                            <p className="score-text">
+                                You got <strong>{score}</strong> out of <strong>{currentQuiz.questions.length}</strong> correct
+                            </p>
+                            <p className="performance-message">
+                                {percentage >= 70 && '🌟 Excellent work! Keep it up!'}
+                                {percentage >= 50 && percentage < 70 && '👍 Good effort! Review the topics below.'}
+                                {percentage < 50 && '📚 Keep practicing! Focus on the areas below.'}
+                            </p>
+                        </div>
                     </div>
-                    <button onClick={() => setActiveSection('dashboard')}>Back to Dashboard</button>
+
+                    <div className="feedback-section">
+                        <h3>📝 Detailed Review</h3>
+                        {results.map((result, idx) => {
+                            const question = currentQuiz.questions[idx];
+                            return (
+                                <div key={idx} className={`feedback-item ${result.isCorrect ? 'correct' : 'incorrect'}`}>
+                                    <div className="feedback-header">
+                                        <span className="q-number">Question {idx + 1}</span>
+                                        <span className={`result-badge ${result.isCorrect ? 'correct' : 'incorrect'}`}>
+                                            {result.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                                        </span>
+                                    </div>
+                                    <p className="question-text"><strong>{question.text}</strong></p>
+                                    
+                                    <div className="answer-comparison">
+                                        <div className="your-answer">
+                                            <span className="label">Your Answer:</span>
+                                            <span className="value">{result.studentAnswer}</span>
+                                        </div>
+                                        {!result.isCorrect && (
+                                            <div className="correct-answer">
+                                                <span className="label">Correct Answer:</span>
+                                                <span className="value">{result.correctAnswer}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <p className="topic-tag">📌 Topic: {question.topic}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    
+                    <button onClick={onBack} className="submit-quiz-btn back-btn">
+                        ← Back to Practice Dashboard
+                    </button>
                 </div>
             </div>
         );
     }
 
+    // Render the active quiz form
     return (
         <div className="quiz-container">
-            <h2>{currentQuiz.title}</h2>
+            <div className="quiz-header">
+                <h2>📝 {currentQuiz.title}</h2>
+                <p className="quiz-info">
+                    {currentQuiz.questions.length} Questions • Answer all questions and submit
+                </p>
+            </div>
+
             <div className="quiz-form card">
-                {currentQuiz.questions.map(q => (
-                    <div key={q.id} className="question-item">
-                        <p><strong>{q.id}.</strong> {q.text}</p>
-                        {q.type === 'MCQ' && (
+                {currentQuiz.questions.map((q, qIndex) => (
+                    <div key={q.id || qIndex} className="question-item">
+                        <div className="question-header">
+                            <span className="question-number">Q{q.id || qIndex + 1}</span>
+                            <span className={`difficulty-badge ${(q.difficulty || 'medium').toLowerCase()}`}>
+                                {q.difficulty || 'Medium'}
+                            </span>
+                        </div>
+                        <p className="question-text">{q.text}</p>
+                        
+                        {q.type === 'MCQ' && q.options && q.options.length > 0 && (
                             <div className="options">
-                                {q.options.map(opt => (
-                                    <label key={opt}>
+                                {q.options.map((opt, optIdx) => (
+                                    <label key={optIdx} className="option-label">
                                         <input
                                             type="radio"
                                             name={`q-${q.id}`}
                                             value={opt}
+                                            checked={answers[q.id] === opt}
                                             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                                        /> {opt}
+                                        />
+                                        <span className="option-text">{opt}</span>
                                     </label>
                                 ))}
                             </div>
                         )}
-                        {q.type === 'TrueFalse' && (
-                            <div className="options">
-                                <label><input type="radio" name={`q-${q.id}`} value="True" onChange={(e) => handleAnswerChange(q.id, e.target.value)} /> True</label>
-                                <label><input type="radio" name={`q-${q.id}`} value="False" onChange={(e) => handleAnswerChange(q.id, e.target.value)} /> False</label>
-                            </div>
-                        )}
+
                         {q.type === 'ShortAnswer' && (
-                             <textarea 
-                                rows="3" 
+                            <textarea 
+                                className="short-answer-input"
+                                rows="4" 
                                 placeholder="Type your answer here..."
                                 value={answers[q.id] || ''}
                                 onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                             />
+                            />
                         )}
+
+                        <div className="question-topic">
+                            <span>📚 Topic: {q.topic || 'General'}</span>
+                        </div>
                     </div>
                 ))}
-                <button onClick={handleSubmit} className="submit-quiz-btn">Submit Quiz</button>
+
+                <div className="quiz-actions">
+                    <button onClick={onBack} className="cancel-btn">
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSubmit} 
+                        className="submit-quiz-btn"
+                        disabled={Object.keys(answers).length === 0}
+                    >
+                        Submit Quiz ({Object.keys(answers).length}/{currentQuiz.questions.length} answered)
+                    </button>
+                </div>
             </div>
         </div>
     );

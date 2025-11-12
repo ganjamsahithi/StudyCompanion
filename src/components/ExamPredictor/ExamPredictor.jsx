@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './ExamPredictor.css';
 import QuizHistoryAndGenerator from './QuizHistoryAndGenerator';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:5000';
 
 const formatDateDisplay = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -320,7 +320,6 @@ const ExamPredictor = () => {
                     <div>
                         <p><strong>Error</strong></p>
                         <p>{error}</p>
-                        {selectedExam && <small>Make sure you have uploaded notes for <strong>{selectedExam.courseName}</strong></small>}
                     </div>
                 </div>
             )}
@@ -633,9 +632,6 @@ const ExamPredictor = () => {
                                             <div key={idx} className="schedule-phase">
                                                 <div className="phase-header-row">
                                                     <span className="phase-num">{phase.phase}</span>
-                                                    <span className="phase-dates">
-                                                        Due: {formatDateDisplay(phase.tasks[phase.tasks.length - 1].dueDate).split(',')[0]}
-                                                    </span>
                                                 </div>
                                                 <div className="phase-tasks-list">
                                                     {phase.tasks.map((task) => (
@@ -656,9 +652,6 @@ const ExamPredictor = () => {
                                                                 >
                                                                     {task.taskName.split(' | ')[1] || task.taskName}
                                                                 </span>
-                                                                <div className="task-meta">
-                                                                    <span className="task-date">🎯 {formatDateDisplay(task.dueDate).split(',')[0]}</span>
-                                                                </div>
                                                             </label>
                                                         </div>
                                                     ))}

@@ -1,249 +1,90 @@
+// backend/services/ai.exam.service.js
+
 const { GoogleGenAI } = require('@google/genai');
 
-// Initialize the Gemini AI client
-const ai = new GoogleGenAI({}); 
+// Initialize the Gemini AI client (expects GEMINI_API_KEY in env)
+const ai = new GoogleGenAI({});
 
-// Define the schema used by the Exam Predictor frontend
-const EXAM_DATA_SCHEMA = {
+const EXAM_PREDICTION_SCHEMA = {
     type: "OBJECT",
     properties: {
-        examDate: { type: "STRING", description: "Predicted or scheduled exam date in YYYY-MM-DD format." },
         topicsLikely: {
             type: "ARRAY",
-            description: "List of 3 to 5 high-probability topics based on combined analysis.",
             items: {
                 type: "OBJECT",
                 properties: {
                     topic: { type: "STRING" },
-                    probability: { type: "NUMBER" },
-                    importance: { type: "STRING", enum: ["Critical", "High", "Medium"] },
-                    lastAppeared: { type: "STRING" },
-                    description: { type: "STRING" }
+                    description: { type: "STRING" },
+                    importance: { type: "STRING", enum: ["High", "Medium", "Low"] },
+                    lastAppeared: { type: "STRING" }
                 },
-                required: ["topic", "probability", "importance"]
+                required: ["topic", "description", "importance"]
             }
         },
-        professorEmphasis: {
+        documentsAnalyzed: { type: "NUMBER" },
+        studyTip: { type: "STRING" },
+        weakAreas: {
             type: "ARRAY",
-            description: "Areas the professor emphasized.",
-            items: {
-                type: "OBJECT",
-                properties: {
-                    topic: { type: "STRING" },
-                    mentions: { type: "NUMBER" },
-                    recentLectures: { type: "STRING" }
-                },
-                required: ["topic", "mentions", "recentLectures"]
-            }
-        },
-        practiceQuestions: {
-            type: "ARRAY",
-            description: "5 personalized practice questions.",
-            items: {
-                type: "OBJECT",
-                properties: {
-                    id: { type: "NUMBER" },
-                    question: { type: "STRING" },
-                    difficulty: { type: "STRING", enum: ["Easy", "Medium", "Hard"] },
-                    estimatedTime: { type: "STRING" },
-                    topic: { type: "STRING" }
-                },
-                required: ["id", "question", "difficulty", "estimatedTime", "topic"]
-            }
+            items: { type: "STRING" }
         },
         revisionRoadmap: {
             type: "OBJECT",
-            description: "A phased study plan.",
             properties: {
-                daysUntilExam: { type: "NUMBER" },
-                totalStudyHours: { type: "NUMBER" },
-                recommendedDailyHours: { type: "NUMBER" },
                 phases: {
                     type: "ARRAY",
                     items: {
                         type: "OBJECT",
                         properties: {
                             phase: { type: "STRING" },
-                            duration: { type: "STRING" },
                             startDate: { type: "STRING" },
-                            endDate: { type: "STRING" },
                             tasks: {
                                 type: "ARRAY",
                                 items: {
                                     type: "OBJECT",
                                     properties: {
-                                        task: { type: "STRING" },
-                                        hours: { type: "NUMBER" },
-                                        priority: { type: "STRING", enum: ["Critical", "High", "Medium"] }
-                                    },
-                                    required: ["task", "hours", "priority"]
+                                        task: { type: "STRING" }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            },
-            required: ["daysUntilExam", "totalStudyHours", "recommendedDailyHours", "phases"]
-        },
-        studyTip: { type: "STRING", description: "A personalized study recommendation" },
-        weakAreas: {
-            type: "ARRAY",
-            description: "Areas that need more focus",
-            items: { type: "STRING" }
-        },
-        documentsAnalyzed: { type: "NUMBER", description: "Number of documents analyzed" }
+            }
+        }
     },
-    required: ["examDate", "topicsLikely", "professorEmphasis", "practiceQuestions", "revisionRoadmap"]
+    required: ["topicsLikely", "documentsAnalyzed", "studyTip", "weakAreas", "revisionRoadmap"]
 };
 
-// ============= NEW SCHEMA FOR TOPIC SYLLABUS =============
 const TOPIC_SYLLABUS_SCHEMA = {
     type: "OBJECT",
     properties: {
-        overview: {
-            type: "STRING",
-            description: "A comprehensive 2-3 sentence overview of the topic"
-        },
+        overview: { type: "STRING" },
         subtopics: {
             type: "ARRAY",
-            description: "List of 4-8 key subtopics that students should master",
             items: {
                 type: "OBJECT",
                 properties: {
-                    name: { 
-                        type: "STRING",
-                        description: "Name of the subtopic" 
-                    },
-                    description: { 
-                        type: "STRING",
-                        description: "Brief explanation of what this subtopic covers" 
-                    },
+                    name: { type: "STRING" },
+                    description: { type: "STRING" },
                     keyPoints: {
                         type: "ARRAY",
-                        description: "3-5 essential points or concepts within this subtopic",
                         items: { type: "STRING" }
                     }
-                },
-                required: ["name", "description", "keyPoints"]
+                }
             }
         },
         learningObjectives: {
             type: "ARRAY",
-            description: "5-7 specific learning objectives students should achieve",
             items: { type: "STRING" }
         },
         studyTips: {
             type: "ARRAY",
-            description: "4-6 practical study tips specific to this topic",
             items: { type: "STRING" }
         },
-        estimatedStudyTime: {
-            type: "STRING",
-            description: "Estimated time needed to master this topic (e.g., '8-10 hours')"
-        }
+        estimatedStudyTime: { type: "STRING" }
     },
-    required: ["overview", "subtopics", "learningObjectives", "studyTips", "estimatedStudyTime"]
+    required: ["overview", "subtopics", "learningObjectives"]
 };
-// ============= END OF NEW SCHEMA =============
-
-
-/**
- * Generates a full exam prediction report using the Gemini API.
- */
-async function generateExamPrediction(courseName, courseData) {
-    const systemPrompt = `You are an expert academic data scientist and predictor. Your job is to analyze the provided student data and course name (${courseName}). If specific notes or tasks are missing, you must use your general knowledge about ${courseName} to generate a hyper-realistic, structured exam preparation report in the exact JSON format specified. Do NOT generate content for irrelevant subjects. **Your generated content MUST match the subject provided in courseName (e.g., if it is 'Aptitude', do NOT output 'Data Structures').**`;
-
-    const tasksSummary = courseData.tasks.length > 0
-        ? courseData.tasks.map(t => `Task: ${t.taskName} (${t.taskType}) due ${new Date(t.dueDate).toLocaleDateString()}. Completed: ${t.isCompleted}`).join('\n')
-        : "No academic tasks found for this course.";
-
-    const documentsSummary = courseData.documents.length > 0
-        ? courseData.documents.map(d => `Document: ${d.fileName} (Summary: ${d.summary ? d.summary.substring(0, 100) + '...' : 'Not yet summarized'}).`).join('\n')
-        : "No notes or summarized documents found for this course. Base your predictions on general subject knowledge of " + courseName;
-
-    const userPrompt = `Generate the comprehensive Exam Prediction Report for the course ${courseName}.
-        ---
-        Student Activity Data:
-        \n${tasksSummary}
-        \n${documentsSummary}
-        ---
-        Based on this data, fill the entire required JSON schema for the exam predictor.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ parts: [{ text: userPrompt }] }],
-            config: {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                responseMimeType: "application/json",
-                responseSchema: EXAM_DATA_SCHEMA,
-                temperature: 0.5,
-            }
-        });
-
-        const jsonString = response.text.trim();
-        return JSON.parse(jsonString);
-
-    } catch (error) {
-        console.error('Gemini Exam Prediction Failed:', error);
-        throw new Error('AI generation failed. Ensure the API key is correct and document summaries exist.');
-    }
-}
-
-// ============= NEW FUNCTION FOR TOPIC SYLLABUS =============
-/**
- * Generates detailed syllabus for a specific topic using Gemini AI
- */
-async function generateTopicSyllabus(courseName, topicName, topicDescription) {
-    const systemPrompt = `You are an expert academic curriculum designer and educator specializing in ${courseName}. 
-Your task is to create a comprehensive, detailed syllabus for the topic "${topicName}" that would help students 
-prepare for an exam. The syllabus should be structured, practical, and focused on exam preparation. 
-Use your extensive knowledge of ${courseName} to provide accurate and relevant information.`;
-
-    const userPrompt = `Create a detailed syllabus for the following topic in ${courseName}:
-
-Topic: ${topicName}
-${topicDescription ? `Description: ${topicDescription}` : ''}
-
-Please provide:
-1. A comprehensive overview of this topic
-2. All major subtopics with detailed explanations and key concepts
-3. Specific learning objectives that students should achieve
-4. Practical study tips tailored to this topic
-5. An estimated study time for mastering this topic
-
-Make the content exam-focused, practical, and comprehensive. Include real-world applications where relevant.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ parts: [{ text: userPrompt }] }],
-            config: {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                responseMimeType: "application/json",
-                responseSchema: TOPIC_SYLLABUS_SCHEMA,
-                temperature: 0.7,
-            }
-        });
-
-        const jsonString = response.text.trim();
-        const syllabus = JSON.parse(jsonString);
-
-        // Add metadata
-        syllabus.topicName = topicName;
-        syllabus.courseName = courseName;
-        syllabus.generatedAt = new Date().toISOString();
-
-        return syllabus;
-
-    } catch (error) {
-        console.error('Gemini Topic Syllabus Generation Failed:', error);
-        throw new Error('Failed to generate topic syllabus. Please try again.');
-    }
-}
-// ============= END OF NEW FUNCTION =============
-
-// Add this function to your backend/services/ai.exam.service.js file
 
 const QUIZ_SCHEMA = {
     type: "OBJECT",
@@ -281,68 +122,6 @@ const QUIZ_SCHEMA = {
     },
     required: ["title", "quizType", "questions"]
 };
-
-/**
- * Generates a quiz with 10 MCQs + 1 typing question
- * @param {string} courseName - Name of the course
- * @param {string} difficulty - Easy, Medium, Hard, or Mixed
- * @param {number} questionCount - Number of MCQs (default 10)
- * @param {boolean} includeTypingQuestion - Whether to include a typing question
- * @param {string} documentContext - Context from uploaded documents
- */
-async function generateQuiz(courseName, difficulty, questionCount = 10, includeTypingQuestion = true, documentContext = '') {
-    const systemPrompt = `You are an expert quiz creator for ${courseName}. 
-Create exactly ${questionCount} multiple-choice questions (MCQs) and ${includeTypingQuestion ? '1 short answer (typing) question' : '0 typing questions'}.\n\nRequirements:\n- Each MCQ must have EXACTLY 4 distinct options labeled A, B, C, D\n- Questions must be relevant to ${courseName}\n- Difficulty level: ${difficulty}\n- All questions must have ONE correct answer\n- The typing question should test comprehensive understanding\n- Use the provided document context if available, otherwise use general knowledge about ${courseName}\n\nFormat requirements:\n- MCQ questions: type = "MCQ", options = array of 4 strings\n- Typing question: type = "ShortAnswer", options = empty array\n- Correct answer must be provided for all questions`;
-
-    const userPrompt = `Generate a ${difficulty} quiz for ${courseName} with ${questionCount} MCQs and ${includeTypingQuestion ? '1' : '0'} typing question(s).\n\n${documentContext ? `Use this course content as reference:\n${documentContext.substring(0, 2000)}` : `Base questions on general knowledge of ${courseName}`}\n\nEnsure questions test:\n- Fundamental concepts\n- Practical applications  \n- Problem-solving abilities\n- Comprehension and analysis\n\nThe quiz should be comprehensive and suitable for exam preparation.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ parts: [{ text: userPrompt }] }],
-            config: {
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                responseMimeType: "application/json",
-                responseSchema: QUIZ_SCHEMA,
-                temperature: 0.7,
-            }
-        });
-
-        const jsonString = response.text.trim();
-        const quizData = JSON.parse(jsonString);
-
-        // Validate and format questions
-        quizData.questions = quizData.questions.map((q, index) => {
-            q.id = index + 1;
-            
-            // Ensure MCQ has 4 options
-            if (q.type === 'MCQ' && (!q.options || q.options.length !== 4)) {
-                q.options = ['Option A', 'Option B', 'Option C', 'Option D'];
-            }
-            
-            // Ensure ShortAnswer has empty options
-            if (q.type === 'ShortAnswer') {
-                q.options = [];
-            }
-            
-            return q;
-        });
-
-        quizData.courseName = courseName;
-        quizData.title = quizData.title || `${courseName} ${difficulty} Quiz`;
-        quizData.quizType = difficulty;
-
-        console.log(`Quiz generated: ${quizData.questions.length} questions`);
-
-        return quizData;
-
-    } catch (error) {
-        console.error('Quiz Generation Failed:', error);
-        
-        // Fallback quiz if AI fails
-        return generateFallbackQuiz(courseName, difficulty, questionCount, includeTypingQuestion);
-    }
-}
 
 /**
  * Generates a quiz with 10 MCQs + 1 typing question
@@ -525,6 +304,214 @@ function generateFallbackQuiz(courseName, difficulty, questionCount, includeTypi
         questions: questions,
         courseName: courseName
     };
+}
+
+/**
+ * Generates exam prediction report for a course
+ */
+async function generateExamPrediction(courseName, courseData) {
+    const { tasks, documents } = courseData;
+    
+    console.log(`📚 Generating exam prediction for ${courseName}`);
+    
+    // Find the nearest exam task, or use default values if no tasks found
+    const examTask = tasks && tasks.length > 0 
+        ? (tasks.find(t => t.taskType === 'Exam') || tasks[0])
+        : null;
+    
+    // Calculate days until exam (use a default date if no task found)
+    const today = new Date();
+    let examDate = new Date();
+    examDate.setDate(examDate.getDate() + 7); // Default to 7 days from now
+    let daysUntilExam = 7;
+    let examTaskName = 'General Exam';
+    
+    if (examTask) {
+        examDate = new Date(examTask.dueDate);
+        daysUntilExam = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+        examTaskName = examTask.taskName || 'General Exam';
+    }
+    
+    // Prepare document summaries
+    const documentSummaries = documents && documents.length > 0
+        ? documents.map((doc, idx) => `${idx + 1}. ${doc.fileName}: ${doc.summary || 'No summary available'}`).join('\n\n')
+        : '';
+    
+    const systemPrompt = `You are an expert academic AI assistant specializing in exam preparation. Analyze course materials and generate comprehensive exam predictions.`;
+    
+    const userPrompt = `Generate an exam preparation report for the course "${courseName}".
+
+**Exam Details:**
+- Exam: ${examTaskName}
+- Exam Date: ${examDate.toISOString().split('T')[0]}
+- Days Until Exam: ${daysUntilExam}
+- Documents Analyzed: ${documents ? documents.length : 0}
+
+**Course Materials:**
+${documentSummaries || 'No course materials uploaded yet. Based on the course name "' + courseName + '", generate comprehensive exam predictions covering typical topics, concepts, and study areas that would be relevant for this subject. Use your knowledge of the subject matter to create realistic predictions.'}
+
+**Requirements:**
+1. Identify 5-8 most important topics likely to appear on the exam (use your knowledge of ${courseName} if no materials provided)
+2. For each topic, provide: topic name, description, importance level (High/Medium/Low), and when it last appeared
+3. Identify 3-5 weak areas that need focus
+4. Provide a personalized study tip based on days remaining
+5. Create a revision roadmap with phases, each phase having a start date and specific tasks
+6. If exam is within 7 days, emphasize urgent focus on high-priority topics only
+7. Even without uploaded materials, generate realistic and helpful predictions based on standard ${courseName} curriculum
+
+Return the response in the specified JSON format.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: userPrompt }] }],
+            config: {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                responseMimeType: "application/json",
+                responseSchema: EXAM_PREDICTION_SCHEMA,
+                temperature: 0.7,
+            }
+        });
+
+        const jsonString = response.text.trim();
+        const predictionData = JSON.parse(jsonString);
+        
+        // Add metadata
+        predictionData.documentsAnalyzed = documents ? documents.length : 0;
+        predictionData.courseName = courseName;
+        predictionData.examDate = examDate.toISOString().split('T')[0];
+        predictionData.daysUntilExam = daysUntilExam;
+        
+        // Ensure topicsLikely has lastAppeared if missing
+        if (predictionData.topicsLikely) {
+            predictionData.topicsLikely = predictionData.topicsLikely.map((topic, idx) => ({
+                ...topic,
+                lastAppeared: topic.lastAppeared || `Recently covered`,
+                importance: topic.importance || (idx < 3 ? 'High' : idx < 5 ? 'Medium' : 'Low')
+            }));
+        }
+        
+        console.log(`✅ Exam prediction generated: ${predictionData.topicsLikely?.length || 0} topics`);
+        
+        return predictionData;
+        
+    } catch (error) {
+        console.error('❌ Exam Prediction Generation Failed:', error);
+        
+        // Return fallback prediction
+        return {
+            topicsLikely: [
+                {
+                    topic: 'Core Concepts',
+                    description: 'Fundamental principles and theories',
+                    importance: 'High',
+                    lastAppeared: 'Frequently tested'
+                },
+                {
+                    topic: 'Practical Applications',
+                    description: 'Real-world applications and case studies',
+                    importance: 'High',
+                    lastAppeared: 'Commonly included'
+                }
+            ],
+            documentsAnalyzed: documents ? documents.length : 0,
+            studyTip: daysUntilExam <= 7 
+                ? `Focus on high-priority topics only. Review key concepts daily.`
+                : `Create a study schedule covering all topics. Review materials regularly.`,
+            weakAreas: ['Need more practice', 'Review key concepts', 'Focus on fundamentals'],
+            revisionRoadmap: {
+                phases: [
+                    {
+                        phase: 'Phase 1: Foundation Review',
+                        startDate: new Date().toISOString().split('T')[0],
+                        tasks: [
+                            { task: 'Review core concepts' },
+                            { task: 'Study fundamental principles' }
+                        ]
+                    }
+                ]
+            }
+        };
+    }
+}
+
+/**
+ * Generates detailed syllabus for a specific topic
+ */
+async function generateTopicSyllabus(courseName, topicName, topicDescription) {
+    console.log(`📖 Generating syllabus for topic: ${topicName}`);
+    
+    const systemPrompt = `You are an expert academic AI assistant. Generate comprehensive, detailed syllabi for specific course topics.`;
+    
+    const userPrompt = `Generate a detailed syllabus for the topic "${topicName}" in the course "${courseName}".
+
+**Topic Description:**
+${topicDescription || 'General topic in the course'}
+
+**Requirements:**
+1. Provide a comprehensive overview of the topic
+2. Break down into 3-6 key subtopics with descriptions
+3. List 3-5 learning objectives
+4. Provide 3-5 study tips specific to this topic
+5. Estimate realistic study time needed
+
+Return the response in the specified JSON format.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: [{ text: userPrompt }] }],
+            config: {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                responseMimeType: "application/json",
+                responseSchema: TOPIC_SYLLABUS_SCHEMA,
+                temperature: 0.7,
+            }
+        });
+
+        const jsonString = response.text.trim();
+        const syllabusData = JSON.parse(jsonString);
+        
+        // Ensure estimatedStudyTime is present
+        if (!syllabusData.estimatedStudyTime) {
+            syllabusData.estimatedStudyTime = '2-4 hours';
+        }
+        
+        console.log(`✅ Topic syllabus generated for: ${topicName}`);
+        
+        return syllabusData;
+        
+    } catch (error) {
+        console.error('❌ Topic Syllabus Generation Failed:', error);
+        
+        // Return fallback syllabus
+        return {
+            overview: `This topic covers ${topicName} in the context of ${courseName}. It is an important area that requires thorough understanding.`,
+            subtopics: [
+                {
+                    name: 'Introduction',
+                    description: 'Basic concepts and definitions',
+                    keyPoints: ['Key concept 1', 'Key concept 2', 'Key concept 3']
+                },
+                {
+                    name: 'Core Principles',
+                    description: 'Fundamental principles and theories',
+                    keyPoints: ['Principle 1', 'Principle 2']
+                }
+            ],
+            learningObjectives: [
+                'Understand the fundamental concepts',
+                'Apply principles to solve problems',
+                'Analyze real-world applications'
+            ],
+            studyTips: [
+                'Review the material regularly',
+                'Practice with examples',
+                'Focus on understanding, not memorization'
+            ],
+            estimatedStudyTime: '2-4 hours'
+        };
+    }
 }
 
 // Make sure this is exported

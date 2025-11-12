@@ -1,22 +1,22 @@
+// backend/services/ai.service.js
 const { GoogleGenAI } = require('@google/genai');
-const fs = require('fs/promises'); // <-- CHANGE 1: Use fs.promises for async file ops
-const fsSync = require('fs');     // <-- Use fsSync for synchronous checks (if absolutely necessary)
+const fs = require('fs/promises'); // async fs
+const fsSync = require('fs');     // synchronous checks where needed
 const path = require('path');
 const pdfParse = require('pdf-parse'); 
 const mammoth = require('mammoth');
 const { createWorker } = require('tesseract.js'); 
-const fileType = require('file-type'); 
+const fileType = require('file-type');
 
 // Initialize the Gemini AI client (expects GEMINI_API_KEY in env)
 const ai = new GoogleGenAI({});
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif']);
 const tmpOcrDir = path.join(__dirname, '..', 'tmp_ocr');
 
-
-// --- Diagnostic logger (Now asynchronous) ---
+// --- Diagnostic logger ---
 async function logDiagnostic(filePath, buffer) {
   try {
-    const stat = await fs.stat(filePath); // <-- ASYNC
+    const stat = await fs.stat(filePath);
     console.log('--- File Diagnostic ---');
     console.log('Path:', filePath);
     console.log('Size (bytes):', stat.size);
@@ -28,14 +28,14 @@ async function logDiagnostic(filePath, buffer) {
   }
 }
 
-// OCR helper using tesseract.js (Now asynchronous)
+// OCR helper using tesseract.js
 async function ocrBufferUsingTesseract(buffer, filePath) {
-  if (!fsSync.existsSync(tmpOcrDir)) await fs.mkdir(tmpOcrDir, { recursive: true }); // <-- ASYNC mkdir
+  if (!fsSync.existsSync(tmpOcrDir)) await fs.mkdir(tmpOcrDir, { recursive: true });
 
   const ext = path.extname(filePath) || '.png';
   const tmpFile = path.join(tmpOcrDir, `ocr_${Date.now()}${ext}`);
   
-  await fs.writeFile(tmpFile, buffer); // <-- ASYNC write
+  await fs.writeFile(tmpFile, buffer);
 
   const worker = createWorker(); 
   try {
@@ -44,12 +44,12 @@ async function ocrBufferUsingTesseract(buffer, filePath) {
     await worker.initialize('eng');
     const { data: { text } } = await worker.recognize(tmpFile);
     await worker.terminate();
-    try { await fs.unlink(tmpFile); } catch (e) {} // <-- ASYNC unlink
+    try { await fs.unlink(tmpFile); } catch (e) {}
     if (text && text.trim().length) return text.trim();
     throw new Error('OCR produced empty text.');
   } catch (err) {
     try { await worker.terminate(); } catch (_) {}
-    try { await fs.unlink(tmpFile); } catch (_) {} // <-- ASYNC unlink
+    try { await fs.unlink(tmpFile); } catch (_) {}
     throw new Error('Tesseract OCR failed: ' + err.message);
   }
 }
@@ -58,10 +58,10 @@ async function ocrBufferUsingTesseract(buffer, filePath) {
  * Extracts text from filePath (handles pdf, docx, txt, images, and tries OCR fallback)
  */
 async function extractTextFromFile(filePath, fileName = '') {
-  // CRITICAL FIX: Check existence synchronously only if necessary, but read ASYNCHRONOUSLY
+  // Quick existence check
   if (!fsSync.existsSync(filePath)) throw new Error('File not found: ' + filePath);
 
-  const buffer = await fs.readFile(filePath); // <-- CHANGE 2: ASYNC file read
+  const buffer = await fs.readFile(filePath);
   await logDiagnostic(filePath, buffer);
 
   let ft = null;
@@ -132,8 +132,6 @@ async function extractTextFromFile(filePath, fileName = '') {
   throw new Error('Unsupported file type or no extractable text found.');
 }
 
-// ... (Rest of generateSummaryFromDocument remains the same) ...
-
 async function generateSummaryFromDocument(filePath, fileName) {
   // Extract text (may throw)
   const documentText = await extractTextFromFile(filePath, fileName);
@@ -142,20 +140,28 @@ async function generateSummaryFromDocument(filePath, fileName) {
     throw new Error('Document text is too short or failed to extract content properly.');
   }
 
+  // Truncate very long documents to avoid API token limits (keep first 30000 characters)
+  const maxLength = 30000;
+  const truncatedText = documentText.length > maxLength 
+    ? documentText.substring(0, maxLength) + '\n\n[... Document truncated for summarization ...]'
+    : documentText;
+
   const systemPrompt = `You are a knowledgeable, concise, and helpful study agent. Your task is to summarize the provided document text for a university student. Create a summary in clear, easy-to-read Markdown format.
 
 Instructions:
 1. Start with a strong, single-sentence overview of the main topic.
 2. Use bullet points to list the 3-5 most important concepts, figures, or takeaways.
 3. Use bolding (**word**) for key terms.
-4. The output must be pure Markdown, suitable for direct display.`;
+4. The output must be pure Markdown, suitable for direct display.
+5. Focus on the most important information from the document.`;
 
-  const userPrompt = `Please summarize the following document content:\n\n---\n\n${documentText}`;
+  const userPrompt = `Please summarize the following document content:\n\n---\n\n${truncatedText}`;
 
   try {
+    console.log('🤖 Calling Gemini AI for summary generation...');
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      contents: [{ parts: [{ text: userPrompt }] }],
       config: {
         systemInstruction: { parts: [{ text: systemPrompt }] },
         temperature: 0.2,
@@ -163,11 +169,57 @@ Instructions:
       },
     });
 
-    return response.text;
+    console.log('📥 AI Response received, type:', typeof response);
+    console.log('📥 Response keys:', response ? Object.keys(response) : 'null');
 
+    // Extract text from response - match the format used in exam service
+    if (response && response.text) {
+      const summary = response.text.trim();
+      console.log('✅ Summary extracted successfully, length:', summary.length);
+      return summary;
+    }
+
+    // Try accessing response.response.text (some SDK versions use this)
+    if (response && response.response && response.response.text) {
+      const summary = response.response.text.trim();
+      console.log('✅ Summary extracted from response.response.text, length:', summary.length);
+      return summary;
+    }
+
+    // Fallback: try to extract from nested structure
+    if (response && typeof response === 'object') {
+      if (typeof response.text === 'string') {
+        const summary = response.text.trim();
+        console.log('✅ Summary extracted from response.text, length:', summary.length);
+        return summary;
+      }
+      if (response.output && Array.isArray(response.output) && response.output[0] && response.output[0].content) {
+        const parts = response.output[0].content;
+        for (const p of parts) {
+          if (p && p.type === 'output_text' && p.text) {
+            const summary = p.text.trim();
+            console.log('✅ Summary extracted from nested structure, length:', summary.length);
+            return summary;
+          }
+        }
+      }
+    }
+
+    // If the library returned string directly, return it
+    if (typeof response === 'string') {
+      const summary = response.trim();
+      console.log('✅ Summary extracted as string, length:', summary.length);
+      return summary;
+    }
+
+    // Log the full response structure for debugging
+    console.error('❌ Unexpected response structure:', JSON.stringify(response, null, 2).substring(0, 500));
+    throw new Error('Unexpected response from Gemini client. Response structure: ' + JSON.stringify(response).substring(0, 200));
   } catch (error) {
-    console.error('AI Summarization Generation Failed:', error);
-    throw new Error('Gemini API call failed. Check AI quota and API key.');
+    console.error('❌ AI Summarization Generation Failed:', error);
+    console.error('❌ Error stack:', error.stack);
+    const errorMessage = error.message || 'Unknown error';
+    throw new Error('Gemini API call failed. ' + errorMessage + (error.stack ? ' Check server logs for details.' : ''));
   }
 }
 
